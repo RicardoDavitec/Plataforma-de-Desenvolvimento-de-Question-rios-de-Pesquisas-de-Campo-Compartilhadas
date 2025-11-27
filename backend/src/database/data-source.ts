@@ -3,12 +3,16 @@ import { config } from 'dotenv';
 
 config();
 
+const useIntegratedSecurity = process.env.DB_INTEGRATED_SECURITY === 'true';
+
 export const dataSourceOptions: DataSourceOptions = {
   type: 'mssql',
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT) || 1433,
-  username: process.env.DB_USERNAME || 'sa',
-  password: process.env.DB_PASSWORD,
+  ...(useIntegratedSecurity ? {} : {
+    username: process.env.DB_USERNAME || 'sa',
+    password: process.env.DB_PASSWORD,
+  }),
   database: process.env.DB_DATABASE || 'campo_research_db',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
@@ -17,8 +21,10 @@ export const dataSourceOptions: DataSourceOptions = {
   options: {
     encrypt: process.env.DB_ENCRYPT === 'true',
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
+    enableArithAbort: true,
+    ...(useIntegratedSecurity ? { trustedConnection: true } : {}),
   },
-};
+} as any;
 
 const dataSource = new DataSource(dataSourceOptions);
 

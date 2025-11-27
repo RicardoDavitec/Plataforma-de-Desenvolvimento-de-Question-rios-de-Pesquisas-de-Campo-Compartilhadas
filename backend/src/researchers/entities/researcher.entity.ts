@@ -12,6 +12,7 @@ import { Subgroup } from '../../subgroups/entities/subgroup.entity';
 import { Question } from '../../questions/entities/question.entity';
 import { Questionnaire } from '../../questionnaires/entities/questionnaire.entity';
 import { Survey } from '../../surveys/entities/survey.entity';
+import { Role } from '../../roles/entities/role.entity';
 
 export enum ResearcherRole {
   ADMIN = 'admin',
@@ -62,6 +63,13 @@ export class Researcher {
 
   @Column({ type: 'uniqueidentifier' })
   subgroupId: string;
+
+  @ManyToOne(() => Role, (role) => role.researchers, { nullable: true })
+  @JoinColumn({ name: 'roleId' })
+  roleEntity: Role;
+
+  @Column({ type: 'uniqueidentifier', nullable: true })
+  roleId: string;
 
   @OneToMany(() => Question, (question) => question.author)
   questions: Question[];

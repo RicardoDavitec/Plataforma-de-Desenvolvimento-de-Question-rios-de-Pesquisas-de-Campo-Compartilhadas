@@ -18,7 +18,8 @@ Sistema web para registro, controle e gerenciamento de questões para pesquisas 
 - **ORM**: TypeORM
 - **Autenticação**: JWT + Passport
 
-### Frontend (Next.js)
+<!-- ### Frontend (Next.js)?/////?///?/
+ -->
 - **Framework**: Next.js 14+ com App Router
 - **UI**: Tailwind CSS + shadcn/ui
 - **State Management**: React Query
