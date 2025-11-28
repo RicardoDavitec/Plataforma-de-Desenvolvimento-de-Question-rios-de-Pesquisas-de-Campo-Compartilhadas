@@ -217,6 +217,14 @@ tbody tr:hover {
   color: white;
 }
 
+.form-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
 .text-muted {
   color: #6c757d;
   font-size: 0.9rem;

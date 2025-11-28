@@ -7,6 +7,7 @@ import './Login.css';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -58,14 +59,36 @@ const Login: React.FC = () => {
           </div>
           <div className="form-group">
             <label htmlFor="password">🔒 Senha</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  padding: '0',
+                  color: '#666',
+                }}
+                title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
           <button type="submit" className="login-button" disabled={loading}>
             {loading ? '⏳ Entrando...' : '🚀 Entrar'}
@@ -83,8 +106,13 @@ const Login: React.FC = () => {
               </li>
               <li>
                 <strong>Ricardo David:</strong><br/>
-                Email: ricardo.david@exemplo.com<br/>
-                Senha: rdsenha123
+                Email: rdavid@davitec.com.br<br/>
+                Senha: senha@123
+              </li>
+              <li>
+                <strong>Erlon Castro:</strong><br/>
+                Email: erlon.castro@universidade.edu.br<br/>
+                Senha: senha@123
               </li>
             </ul>
           </div>

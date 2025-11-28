@@ -14,6 +14,8 @@ import { Researcher } from '../../researchers/entities/researcher.entity';
 import { Question } from '../../questions/entities/question.entity';
 import { Survey } from '../../surveys/entities/survey.entity';
 import { Subgroup } from '../../subgroups/entities/subgroup.entity';
+import { FieldResearch } from '../../field-researches/entities/field-research.entity';
+import { QuestionSequence } from '../../question-sequences/entities/question-sequence.entity';
 
 @Entity('questionnaires')
 export class Questionnaire {
@@ -49,6 +51,13 @@ export class Questionnaire {
   @Column({ type: 'uniqueidentifier' })
   subgroupId: string;
 
+  @Column({ type: 'uniqueidentifier', nullable: true })
+  fieldResearchId: string;
+
+  @ManyToOne(() => FieldResearch, (fieldResearch) => fieldResearch.questionnaires)
+  @JoinColumn({ name: 'fieldResearchId' })
+  fieldResearch: FieldResearch;
+
   @ManyToMany(() => Question, (question) => question.questionnaires)
   @JoinTable({
     name: 'questionnaire_questions',
@@ -59,4 +68,7 @@ export class Questionnaire {
 
   @OneToMany(() => Survey, (survey) => survey.questionnaire)
   surveys: Survey[];
+
+  @OneToMany(() => QuestionSequence, (sequence) => sequence.questionnaire)
+  questionSequences: QuestionSequence[];
 }

@@ -10,6 +10,10 @@ import { QuestionnairesModule } from './questionnaires/questionnaires.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { SimilarityModule } from './similarity/similarity.module';
 import { RolesModule } from './roles/roles.module';
+import { InstitutionsModule } from './institutions/institutions.module';
+import { ResearchProjectsModule } from './research-projects/research-projects.module';
+import { FieldResearchesModule } from './field-researches/field-researches.module';
+import { QuestionSequencesModule } from './question-sequences/question-sequences.module';
 import { RolesService } from './roles/roles.service';
 
 @Module({
@@ -21,10 +25,14 @@ import { RolesService } from './roles/roles.service';
     DatabaseModule,
     AuthModule,
     RolesModule,
+    InstitutionsModule,
+    ResearchProjectsModule,
     SubgroupsModule,
+    FieldResearchesModule,
     ResearchersModule,
     QuestionsModule,
     QuestionnairesModule,
+    QuestionSequencesModule,
     SurveysModule,
     SimilarityModule,
   ],

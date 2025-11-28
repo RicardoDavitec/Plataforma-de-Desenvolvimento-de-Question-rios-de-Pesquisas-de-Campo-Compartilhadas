@@ -21,6 +21,12 @@ export class SubgroupsService {
     return await this.subgroupsRepository.find();
   }
 
+  async findByProject(researchProjectId: string): Promise<Subgroup[]> {
+    return await this.subgroupsRepository.find({
+      where: { researchProjectId },
+    });
+  }
+
   async findOne(id: string): Promise<Subgroup> {
     const subgroup = await this.subgroupsRepository.findOne({
       where: { id },

@@ -6,8 +6,10 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/researchers', label: 'Pesquisadores', icon: '👥' },
+    { path: '/institutions', label: 'Instituições', icon: '🏛️' },
+    { path: '/research-projects', label: 'Projetos', icon: '📊' },
     { path: '/subgroups', label: 'Subgrupos', icon: '📁' },
+    { path: '/researchers', label: 'Pesquisadores', icon: '👥' },
     { path: '/roles', label: 'Funções', icon: '👔' },
     { path: '/questions', label: 'Questões', icon: '❓' },
   ];

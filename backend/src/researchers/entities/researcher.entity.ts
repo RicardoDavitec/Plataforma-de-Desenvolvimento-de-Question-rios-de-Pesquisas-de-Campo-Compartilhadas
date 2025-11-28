@@ -57,11 +57,14 @@ export class Researcher {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Subgroup, (subgroup) => subgroup.researchers)
+  @Column({ type: 'uniqueidentifier', nullable: true })
+  researchProjectId: string;
+
+  @ManyToOne(() => Subgroup, (subgroup) => subgroup.researchers, { nullable: true })
   @JoinColumn({ name: 'subgroupId' })
   subgroup: Subgroup;
 
-  @Column({ type: 'uniqueidentifier' })
+  @Column({ type: 'uniqueidentifier', nullable: true })
   subgroupId: string;
 
   @ManyToOne(() => Role, (role) => role.researchers, { nullable: true })

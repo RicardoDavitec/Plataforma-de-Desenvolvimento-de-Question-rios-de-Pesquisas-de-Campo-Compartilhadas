@@ -6,6 +6,8 @@ import Researchers from './pages/Researchers';
 import Subgroups from './pages/Subgroups';
 import Roles from './pages/Roles';
 import Questions from './pages/Questions';
+import Institutions from './pages/Institutions';
+import ResearchProjects from './pages/ResearchProjects';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -20,12 +22,23 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route
-          path="/researchers"
+          path="/institutions"
           element={
             <PrivateRoute>
               <div className="app-layout">
                 <Sidebar />
-                <Researchers />
+                <Institutions />
+              </div>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/research-projects"
+          element={
+            <PrivateRoute>
+              <div className="app-layout">
+                <Sidebar />
+                <ResearchProjects />
               </div>
             </PrivateRoute>
           }
@@ -37,6 +50,17 @@ function App() {
               <div className="app-layout">
                 <Sidebar />
                 <Subgroups />
+              </div>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/researchers"
+          element={
+            <PrivateRoute>
+              <div className="app-layout">
+                <Sidebar />
+                <Researchers />
               </div>
             </PrivateRoute>
           }

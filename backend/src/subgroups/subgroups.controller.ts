@@ -6,8 +6,9 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { SubgroupsService } from './subgroups.service';
 import { CreateSubgroupDto } from './dto/create-subgroup.dto';
 import { UpdateSubgroupDto } from './dto/update-subgroup.dto';
@@ -27,8 +28,12 @@ export class SubgroupsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todos os subgrupos' })
+  @ApiQuery({ name: 'researchProjectId', required: false, description: 'Filtrar por projeto de pesquisa' })
   @ApiResponse({ status: 200, description: 'Lista de subgrupos retornada com sucesso' })
-  findAll() {
+  findAll(@Query('researchProjectId') researchProjectId?: string) {
+    if (researchProjectId) {
+      return this.subgroupsService.findByProject(researchProjectId);
+    }
     return this.subgroupsService.findAll();
   }
 

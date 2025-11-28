@@ -30,12 +30,21 @@ export class CreateResearcherDto {
   password: string;
 
   @ApiProperty({
-    description: 'ID do subgrupo ao qual o pesquisador pertence',
+    description: 'ID do projeto de pesquisa ao qual o pesquisador pertence',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsString()
   @IsNotEmpty()
-  subgroupId: string;
+  researchProjectId: string;
+
+  @ApiProperty({
+    description: 'ID do subgrupo ao qual o pesquisador pertence (opcional)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  subgroupId?: string;
 
   @ApiProperty({
     description: 'Telefone do pesquisador',

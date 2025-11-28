@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Researcher, Subgroup } from '../types';
 import { Role } from '../types/role';
+import { Institution, ResearchProject } from '../types/hierarchical';
 import './Researchers.css';
 
 const Researchers: React.FC = () => {
   const [researchers, setResearchers] = useState<Researcher[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [subgroups, setSubgroups] = useState<Subgroup[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    institutionId: '',
+    researchProjectId: '',
     subgroupId: '',
     phone: '',
-    institution: '',
     roleId: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -23,9 +27,28 @@ const Researchers: React.FC = () => {
 
   useEffect(() => {
     loadResearchers();
-    loadSubgroups();
+    loadInstitutions();
     loadRoles();
   }, []);
+
+  useEffect(() => {
+    if (formData.institutionId) {
+      loadProjectsByInstitution(formData.institutionId);
+    } else {
+      setProjects([]);
+      setSubgroups([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.institutionId]);
+
+  useEffect(() => {
+    if (formData.researchProjectId) {
+      loadSubgroupsByProject(formData.researchProjectId);
+    } else {
+      setSubgroups([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.researchProjectId]);
 
   const loadResearchers = async () => {
     try {
@@ -36,9 +59,27 @@ const Researchers: React.FC = () => {
     }
   };
 
-  const loadSubgroups = async () => {
+  const loadInstitutions = async () => {
     try {
-      const response = await api.get<Subgroup[]>('/subgroups');
+      const response = await api.get<Institution[]>('/institutions');
+      setInstitutions(response.data);
+    } catch (err: any) {
+      setError('Erro ao carregar instituições');
+    }
+  };
+
+  const loadProjectsByInstitution = async (institutionId: string) => {
+    try {
+      const response = await api.get<ResearchProject[]>(`/research-projects?institutionId=${institutionId}`);
+      setProjects(response.data);
+    } catch (err: any) {
+      setError('Erro ao carregar projetos');
+    }
+  };
+
+  const loadSubgroupsByProject = async (projectId: string) => {
+    try {
+      const response = await api.get<Subgroup[]>(`/subgroups?researchProjectId=${projectId}`);
       setSubgroups(response.data);
     } catch (err: any) {
       setError('Erro ao carregar subgrupos');
@@ -65,11 +106,24 @@ const Researchers: React.FC = () => {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          institution: formData.institution,
+          roleId: formData.roleId || undefined,
         });
         setSuccess('Pesquisador atualizado com sucesso!');
       } else {
-        await api.post('/researchers', formData);
+        const payload: any = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          researchProjectId: formData.researchProjectId,
+          phone: formData.phone || undefined,
+          roleId: formData.roleId || undefined,
+        };
+        
+        if (formData.subgroupId) {
+          payload.subgroupId = formData.subgroupId;
+        }
+        
+        await api.post('/researchers', payload);
         setSuccess('Pesquisador criado com sucesso!');
       }
       
@@ -85,9 +139,10 @@ const Researchers: React.FC = () => {
       name: researcher.name,
       email: researcher.email,
       password: '',
-      subgroupId: researcher.subgroupId,
+      institutionId: '',
+      researchProjectId: '',
+      subgroupId: researcher.subgroupId || '',
       phone: researcher.phone || '',
-      institution: researcher.institution || '',
       roleId: (researcher as any).roleId || '',
     });
     setEditingId(researcher.id);
@@ -110,9 +165,10 @@ const Researchers: React.FC = () => {
       name: '',
       email: '',
       password: '',
+      institutionId: '',
+      researchProjectId: '',
       subgroupId: '',
       phone: '',
-      institution: '',
       roleId: '',
     });
     setEditingId(null);
@@ -161,22 +217,61 @@ const Researchers: React.FC = () => {
             </div>
           )}
 
+          <div className="form-group">
+            <label>Instituição *</label>
+            <select
+              value={formData.institutionId}
+              onChange={(e) => setFormData({ ...formData, institutionId: e.target.value })}
+              required={!editingId}
+              disabled={!!editingId}
+            >
+              <option value="">Selecione uma instituição</option>
+              {institutions.map((institution) => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Projeto de Pesquisa *</label>
+            <select
+              value={formData.researchProjectId}
+              onChange={(e) => setFormData({ ...formData, researchProjectId: e.target.value })}
+              required={!editingId}
+              disabled={!!editingId || !formData.institutionId}
+            >
+              <option value="">Selecione um projeto</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            {!formData.institutionId && (
+              <small className="form-hint">Selecione uma instituição primeiro</small>
+            )}
+          </div>
+
           <div className="form-row">
             <div className="form-group">
-              <label>Subgrupo *</label>
+              <label>Subgrupo (Opcional)</label>
               <select
                 value={formData.subgroupId}
                 onChange={(e) => setFormData({ ...formData, subgroupId: e.target.value })}
-                required
-                disabled={!!editingId}
+                disabled={!!editingId || !formData.researchProjectId}
               >
-                <option value="">Selecione um subgrupo</option>
+                <option value="">Nenhum subgrupo</option>
                 {subgroups.map((subgroup) => (
                   <option key={subgroup.id} value={subgroup.id}>
                     {subgroup.name}
                   </option>
                 ))}
               </select>
+              {!formData.researchProjectId && (
+                <small className="form-hint">Selecione um projeto primeiro</small>
+              )}
             </div>
             <div className="form-group">
               <label>Telefone</label>
@@ -186,15 +281,6 @@ const Researchers: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>Instituição</label>
-            <input
-              type="text"
-              value={formData.institution}
-              onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-            />
           </div>
 
           <div className="form-group">
