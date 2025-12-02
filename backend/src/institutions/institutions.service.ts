@@ -1,33 +1,37 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Institution } from './entities/institution.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 
 @Injectable()
 export class InstitutionsService {
-  constructor(
-    @InjectRepository(Institution)
-    private institutionRepository: Repository<Institution>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createInstitutionDto: CreateInstitutionDto): Promise<Institution> {
-    const institution = this.institutionRepository.create(createInstitutionDto);
-    return await this.institutionRepository.save(institution);
-  }
-
-  async findAll(): Promise<Institution[]> {
-    return await this.institutionRepository.find({
-      relations: ['projects'],
-      order: { name: 'ASC' },
+  async create(createInstitutionDto: CreateInstitutionDto) {
+    return await this.prisma.institution.create({
+      data: createInstitutionDto,
     });
   }
 
-  async findOne(id: string): Promise<Institution> {
-    const institution = await this.institutionRepository.findOne({
+  async findAll() {
+    return await this.prisma.institution.findMany({
+      include: {
+        projects: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findOne(id: string) {
+    const institution = await this.prisma.institution.findUnique({
       where: { id },
-      relations: ['projects', 'projects.responsibleResearcher'],
+      include: {
+        projects: {
+          include: {
+            responsibleResearcher: true,
+          },
+        },
+      },
     });
 
     if (!institution) {
@@ -37,14 +41,20 @@ export class InstitutionsService {
     return institution;
   }
 
-  async update(id: string, updateInstitutionDto: UpdateInstitutionDto): Promise<Institution> {
-    const institution = await this.findOne(id);
-    Object.assign(institution, updateInstitutionDto);
-    return await this.institutionRepository.save(institution);
+  async update(id: string, updateInstitutionDto: UpdateInstitutionDto) {
+    await this.findOne(id);
+    
+    return await this.prisma.institution.update({
+      where: { id },
+      data: updateInstitutionDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const institution = await this.findOne(id);
-    await this.institutionRepository.remove(institution);
+    await this.findOne(id);
+    
+    await this.prisma.institution.delete({
+      where: { id },
+    });
   }
 }

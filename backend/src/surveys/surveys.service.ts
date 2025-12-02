@@ -1,51 +1,54 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Survey } from './entities/survey.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateSurveyDto } from './dto/create-survey.dto';
 import { UpdateSurveyDto } from './dto/update-survey.dto';
 import { FilterSurveysDto } from './dto/filter-surveys.dto';
 
 @Injectable()
 export class SurveysService {
-  constructor(
-    @InjectRepository(Survey)
-    private surveysRepository: Repository<Survey>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createSurveyDto: CreateSurveyDto): Promise<Survey> {
-    const { locations, metadata, ...surveyData } = createSurveyDto;
-
-    const survey = this.surveysRepository.create({
-      ...surveyData,
-      locations: locations ? JSON.stringify(locations) : null,
-      metadata: metadata ? JSON.stringify(metadata) : null,
+  async create(createSurveyDto: CreateSurveyDto) {
+    const { responsibleId, ...data } = createSurveyDto;
+    return await this.prisma.survey.create({
+      data: {
+        ...data,
+        coordinatorId: responsibleId,
+      } as any,
     });
-
-    return await this.surveysRepository.save(survey);
   }
 
-  async findAll(filters?: FilterSurveysDto): Promise<Survey[]> {
+  async findAll(filters?: FilterSurveysDto) {
     const where: any = {};
 
     if (filters) {
       if (filters.status) where.status = filters.status;
       if (filters.applicationMethod) where.applicationMethod = filters.applicationMethod;
-      if (filters.responsibleId) where.responsibleId = filters.responsibleId;
+      if (filters.responsibleId) where.coordinatorId = filters.responsibleId;
       if (filters.questionnaireId) where.questionnaireId = filters.questionnaireId;
     }
 
-    return await this.surveysRepository.find({
+    return await this.prisma.survey.findMany({
       where,
-      relations: ['questionnaire', 'responsible'],
-      order: { createdAt: 'DESC' },
+      include: {
+        questionnaire: true,
+        coordinator: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string): Promise<Survey> {
-    const survey = await this.surveysRepository.findOne({
+  async findOne(id: string) {
+    const survey = await this.prisma.survey.findUnique({
       where: { id },
-      relations: ['questionnaire', 'questionnaire.questions', 'responsible'],
+      include: {
+        questionnaire: {
+          include: {
+            questions: true,
+          },
+        },
+        coordinator: true,
+      },
     });
 
     if (!survey) {
@@ -55,31 +58,35 @@ export class SurveysService {
     return survey;
   }
 
-  async update(id: string, updateSurveyDto: UpdateSurveyDto): Promise<Survey> {
-    const survey = await this.findOne(id);
-    const { locations, metadata, ...surveyData } = updateSurveyDto;
-
-    Object.assign(survey, surveyData);
-
-    if (locations) {
-      survey.locations = JSON.stringify(locations);
-    }
-
-    if (metadata) {
-      survey.metadata = JSON.stringify(metadata);
-    }
-
-    return await this.surveysRepository.save(survey);
+  async update(id: string, updateSurveyDto: UpdateSurveyDto) {
+    await this.findOne(id);
+    const { responsibleId, ...data } = updateSurveyDto;
+    
+    return await this.prisma.survey.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(responsibleId && { coordinatorId: responsibleId }),
+      } as any,
+    });
   }
 
-  async incrementResponseCount(id: string): Promise<Survey> {
-    const survey = await this.findOne(id);
-    survey.responseCount += 1;
-    return await this.surveysRepository.save(survey);
+  async incrementResponseCount(id: string) {
+    return await this.prisma.survey.update({
+      where: { id },
+      data: {
+        actualResponses: {
+          increment: 1,
+        },
+      },
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const survey = await this.findOne(id);
-    await this.surveysRepository.remove(survey);
+    await this.findOne(id);
+    
+    await this.prisma.survey.delete({
+      where: { id },
+    });
   }
 }

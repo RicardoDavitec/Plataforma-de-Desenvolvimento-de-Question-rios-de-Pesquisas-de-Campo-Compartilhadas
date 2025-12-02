@@ -1,20 +1,15 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Role } from './entities/role.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Injectable()
 export class RolesService {
-  constructor(
-    @InjectRepository(Role)
-    private rolesRepository: Repository<Role>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createRoleDto: CreateRoleDto): Promise<Role> {
+  async create(createRoleDto: CreateRoleDto) {
     // Verificar se já existe uma função com esse nome
-    const existingRole = await this.rolesRepository.findOne({
+    const existingRole = await this.prisma.role.findUnique({
       where: { name: createRoleDto.name },
     });
 
@@ -22,18 +17,19 @@ export class RolesService {
       throw new ConflictException('Já existe uma função com este nome');
     }
 
-    const role = this.rolesRepository.create(createRoleDto);
-    return await this.rolesRepository.save(role);
-  }
-
-  async findAll(): Promise<Role[]> {
-    return await this.rolesRepository.find({
-      order: { name: 'ASC' },
+    return await this.prisma.role.create({
+      data: createRoleDto,
     });
   }
 
-  async findOne(id: string): Promise<Role> {
-    const role = await this.rolesRepository.findOne({
+  async findAll() {
+    return await this.prisma.role.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findOne(id: string) {
+    const role = await this.prisma.role.findUnique({
       where: { id },
     });
 
@@ -44,27 +40,34 @@ export class RolesService {
     return role;
   }
 
-  async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
-    const role = await this.findOne(id);
+  async update(id: string, updateRoleDto: UpdateRoleDto) {
+    // Verificar se existe
+    await this.findOne(id);
 
     // Se o nome está sendo alterado, verificar duplicidade
-    if (updateRoleDto.name && updateRoleDto.name !== role.name) {
-      const existingRole = await this.rolesRepository.findOne({
+    if (updateRoleDto.name) {
+      const existingRole = await this.prisma.role.findUnique({
         where: { name: updateRoleDto.name },
       });
 
-      if (existingRole) {
+      if (existingRole && existingRole.id !== id) {
         throw new ConflictException('Já existe uma função com este nome');
       }
     }
 
-    Object.assign(role, updateRoleDto);
-    return await this.rolesRepository.save(role);
+    return await this.prisma.role.update({
+      where: { id },
+      data: updateRoleDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const role = await this.findOne(id);
-    await this.rolesRepository.remove(role);
+    // Verificar se existe
+    await this.findOne(id);
+    
+    await this.prisma.role.delete({
+      where: { id },
+    });
   }
 
   async seedRoles(): Promise<void> {
@@ -78,13 +81,14 @@ export class RolesService {
     ];
 
     for (const roleData of defaultRoles) {
-      const existing = await this.rolesRepository.findOne({
+      const existing = await this.prisma.role.findUnique({
         where: { name: roleData.name },
       });
 
       if (!existing) {
-        const role = this.rolesRepository.create(roleData);
-        await this.rolesRepository.save(role);
+        await this.prisma.role.create({
+          data: roleData,
+        });
       }
     }
   }

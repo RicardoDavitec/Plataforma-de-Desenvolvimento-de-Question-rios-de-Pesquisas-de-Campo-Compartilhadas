@@ -1,41 +1,49 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { QuestionSequence } from './entities/question-sequence.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateQuestionSequenceDto } from './dto/create-question-sequence.dto';
 import { UpdateQuestionSequenceDto } from './dto/update-question-sequence.dto';
 
 @Injectable()
 export class QuestionSequencesService {
-  constructor(
-    @InjectRepository(QuestionSequence)
-    private sequenceRepository: Repository<QuestionSequence>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createSequenceDto: CreateQuestionSequenceDto): Promise<QuestionSequence> {
-    const sequence = this.sequenceRepository.create(createSequenceDto);
-    return await this.sequenceRepository.save(sequence);
-  }
-
-  async findAll(): Promise<QuestionSequence[]> {
-    return await this.sequenceRepository.find({
-      relations: ['questionnaire', 'question'],
-      order: { order: 'ASC' },
+  async create(createSequenceDto: CreateQuestionSequenceDto) {
+    return await this.prisma.questionSequence.create({
+      data: createSequenceDto,
     });
   }
 
-  async findByQuestionnaire(questionnaireId: string): Promise<QuestionSequence[]> {
-    return await this.sequenceRepository.find({
+  async findAll() {
+    return await this.prisma.questionSequence.findMany({
+      include: {
+        questionnaire: true,
+        question: true,
+      },
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async findByQuestionnaire(questionnaireId: string) {
+    return await this.prisma.questionSequence.findMany({
       where: { questionnaireId },
-      relations: ['question', 'question.subgroup'],
-      order: { order: 'ASC' },
+      include: {
+        question: {
+          include: {
+            subgroup: true,
+          },
+        },
+      },
+      orderBy: { order: 'asc' },
     });
   }
 
-  async findOne(id: string): Promise<QuestionSequence> {
-    const sequence = await this.sequenceRepository.findOne({
+  async findOne(id: string) {
+    const sequence = await this.prisma.questionSequence.findUnique({
       where: { id },
-      relations: ['questionnaire', 'question'],
+      include: {
+        questionnaire: true,
+        question: true,
+      },
     });
 
     if (!sequence) {
@@ -45,20 +53,29 @@ export class QuestionSequencesService {
     return sequence;
   }
 
-  async update(id: string, updateSequenceDto: UpdateQuestionSequenceDto): Promise<QuestionSequence> {
-    const sequence = await this.findOne(id);
-    Object.assign(sequence, updateSequenceDto);
-    return await this.sequenceRepository.save(sequence);
+  async update(id: string, updateSequenceDto: UpdateQuestionSequenceDto) {
+    await this.findOne(id);
+    
+    return await this.prisma.questionSequence.update({
+      where: { id },
+      data: updateSequenceDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const sequence = await this.findOne(id);
-    await this.sequenceRepository.remove(sequence);
+    await this.findOne(id);
+    
+    await this.prisma.questionSequence.delete({
+      where: { id },
+    });
   }
 
   async reorderSequences(questionnaireId: string, sequences: { id: string; order: number }[]): Promise<void> {
     for (const seq of sequences) {
-      await this.sequenceRepository.update(seq.id, { order: seq.order });
+      await this.prisma.questionSequence.update({
+        where: { id: seq.id },
+        data: { order: seq.order },
+      });
     }
   }
 }

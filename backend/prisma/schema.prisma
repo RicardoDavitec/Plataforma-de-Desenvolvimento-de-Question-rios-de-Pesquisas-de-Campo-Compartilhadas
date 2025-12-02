@@ -3,31 +3,33 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client"
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // SQL Server não suporta enums nativos, usar strings com validação
 
 // Models
 model Institution {
-  id          String            @id @default(uuid()) @db.UniqueIdentifier
-  name        String            @db.NVarChar(200)
-  acronym     String?           @db.NVarChar(50)
-  type        String            @db.NVarChar(100)
-  cnpj        String            @unique @db.NVarChar(20)
-  address     String?           @db.NVarChar(200)
-  city        String?           @db.NVarChar(100)
-  state       String?           @db.NVarChar(2)
-  zipCode     String?           @db.NVarChar(10)
-  phone       String?           @db.NVarChar(20)
-  email       String?           @db.NVarChar(150)
-  website     String?           @db.NVarChar(200)
-  rector      String?           @db.NVarChar(100)
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String            @db.VarChar(200)
+  acronym     String?           @db.VarChar(50)
+  type        String            @db.VarChar(100)
+  cnpj        String            @unique @db.VarChar(20)
+  address     String?           @db.VarChar(200)
+  city        String?           @db.VarChar(100)
+  state       String?           @db.VarChar(2)
+  zipCode     String?           @db.VarChar(10)
+  phone       String?           @db.VarChar(20)
+  email       String?           @db.VarChar(150)
+  website     String?           @db.VarChar(200)
+  rector      String?           @db.VarChar(100)
   description String?           @db.Text
-  isActive    Boolean           @default(true) @db.Bit
+  isActive    Boolean           @default(true) 
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   
@@ -37,27 +39,27 @@ model Institution {
 }
 
 model ResearchProject {
-  id                      String         @id @default(uuid()) @db.UniqueIdentifier
-  name                    String         @db.NVarChar(200)
-  code                    String?        @db.NVarChar(50)
-  codeUUID                String         @unique @default(uuid()) @db.UniqueIdentifier
+  id                      String         @id @default(uuid()) @db.Uuid
+  name                    String         @db.VarChar(200)
+  code                    String?        @db.VarChar(50)
+  codeUUID                String         @unique @default(uuid()) @db.Uuid
   description             String?        @db.Text
-  area                    String?        @db.NVarChar(100)
+  area                    String?        @db.VarChar(100)
   startDate               DateTime?      @db.Date
   endDate                 DateTime?      @db.Date
-  status                  String         @default("active") @db.NVarChar(50)
+  status                  String         @default("active") @db.VarChar(50)
   budget                  Decimal?       @db.Decimal(15, 2)
-  fundingAgency           String?        @db.NVarChar(100)
+  fundingAgency           String?        @db.VarChar(100)
   objectives              String?        @db.Text
   expectedResults         String?        @db.Text
-  isActive                Boolean        @default(true) @db.Bit
+  isActive                Boolean        @default(true) 
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
   
-  institutionId           String?        @db.UniqueIdentifier
+  institutionId           String?        @db.Uuid
   institution             Institution?   @relation(fields: [institutionId], references: [id])
   
-  responsibleResearcherId String?        @db.UniqueIdentifier
+  responsibleResearcherId String?        @db.Uuid
   responsibleResearcher   Researcher?    @relation("ProjectResponsible", fields: [responsibleResearcherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   subgroups               Subgroup[]
@@ -67,28 +69,29 @@ model ResearchProject {
 }
 
 model Subgroup {
-  id                String          @id @default(uuid()) @db.UniqueIdentifier
-  name              String          @unique @db.NVarChar(100)
-  description       String?         @db.NVarChar(500)
-  isActive          Boolean         @default(true) @db.Bit
+  id                String          @id @default(uuid()) @db.Uuid
+  name              String          @unique @db.VarChar(100)
+  description       String?         @db.VarChar(500)
+  isActive          Boolean         @default(true) 
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   
-  researchProjectId String?         @db.UniqueIdentifier
+  researchProjectId String?         @db.Uuid
   researchProject   ResearchProject? @relation(fields: [researchProjectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   researchers       Researcher[]
   questions         Question[]
+  questionnaires    Questionnaire[]
   fieldResearches   FieldResearch[]
 
   @@map("subgroups")
 }
 
 model Role {
-  id          String       @id @default(uuid()) @db.UniqueIdentifier
-  name        String       @unique @db.NVarChar(50)
-  description String?      @db.NVarChar(255)
-  isActive    Boolean      @default(true) @db.Bit
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @unique @db.VarChar(50)
+  description String?      @db.VarChar(255)
+  isActive    Boolean      @default(true) 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   
@@ -98,24 +101,24 @@ model Role {
 }
 
 model Researcher {
-  id                String           @id @default(uuid()) @db.UniqueIdentifier
-  name              String           @db.NVarChar(150)
-  email             String           @unique @db.NVarChar(150)
-  password          String           @db.NVarChar(255)
-  role              String           @default("researcher") @db.NVarChar(50) // admin, researcher, viewer
-  isActive          Boolean          @default(true) @db.Bit
-  phone             String?          @db.NVarChar(20)
-  institution       String?          @db.NVarChar(100)
+  id                String           @id @default(uuid()) @db.Uuid
+  name              String           @db.VarChar(150)
+  email             String           @unique @db.VarChar(150)
+  password          String           @db.VarChar(255)
+  role              String           @default("researcher") @db.VarChar(50) // admin, researcher, viewer
+  isActive          Boolean          @default(true) 
+  phone             String?          @db.VarChar(20)
+  institution       String?          @db.VarChar(100)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   
-  researchProjectId String?          @db.UniqueIdentifier
+  researchProjectId String?          @db.Uuid
   researchProject   ResearchProject? @relation("ResearcherProjects", fields: [researchProjectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  subgroupId        String?          @db.UniqueIdentifier
+  subgroupId        String?          @db.Uuid
   subgroup          Subgroup?        @relation(fields: [subgroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  roleId            String?          @db.UniqueIdentifier
+  roleId            String?          @db.Uuid
   roleEntity        Role?            @relation(fields: [roleId], references: [id])
   
   questions         Question[]
@@ -128,26 +131,26 @@ model Researcher {
 }
 
 model Question {
-  id                    String             @id @default(uuid()) @db.UniqueIdentifier
-  text                  String             @db.NVarChar(1000)
-  type                  String             @db.NVarChar(50) // multiple_choice, yes_no, open_text, quantitative, qualitative, scale
-  visibility            String             @default("subgroup") @db.NVarChar(50) // private, subgroup, public
-  objective             String?            @db.NVarChar(500)
-  targetAudience        String?            @db.NVarChar(500)
-  targetGender          String             @default("all") @db.NVarChar(50) // male, female, other, all
-  targetEducationLevel  String             @default("all") @db.NVarChar(50) // none, elementary, high_school, undergraduate, graduate, postgraduate, all
+  id                    String             @id @default(uuid()) @db.Uuid
+  text                  String             @db.VarChar(1000)
+  type                  String             @db.VarChar(50) // multiple_choice, yes_no, open_text, quantitative, qualitative, scale
+  visibility            String             @default("subgroup") @db.VarChar(50) // private, subgroup, public
+  objective             String?            @db.VarChar(500)
+  targetAudience        String?            @db.VarChar(500)
+  targetGender          String             @default("all") @db.VarChar(50) // male, female, other, all
+  targetEducationLevel  String             @default("all") @db.VarChar(50) // none, elementary, high_school, undergraduate, graduate, postgraduate, all
   minAge                Int?
   maxAge                Int?
-  targetLocation        String?            @db.NVarChar(200)
+  targetLocation        String?            @db.VarChar(200)
   options               String?            @db.Text
-  isActive              Boolean            @default(true) @db.Bit
+  isActive              Boolean            @default(true) 
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   
-  authorId              String             @db.UniqueIdentifier
+  authorId              String             @db.Uuid
   author                Researcher         @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  subgroupId            String?            @db.UniqueIdentifier
+  subgroupId            String?            @db.Uuid
   subgroup              Subgroup?          @relation(fields: [subgroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   questionnaires        Questionnaire[]    @relation("QuestionnaireQuestions")
@@ -157,19 +160,20 @@ model Question {
 }
 
 model Questionnaire {
-  id              String             @id @default(uuid()) @db.UniqueIdentifier
-  title           String             @db.NVarChar(200)
-  description     String?            @db.NVarChar(1000)
-  isActive        Boolean            @default(true) @db.Bit
+  id              String             @id @default(uuid()) @db.Uuid
+  title           String             @db.VarChar(200)
+  description     String?            @db.VarChar(1000)
+  isActive        Boolean            @default(true) 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   
-  creatorId       String             @db.UniqueIdentifier
+  creatorId       String             @db.Uuid
   creator         Researcher         @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  subgroupId      String             @db.UniqueIdentifier
+  subgroupId      String             @db.Uuid
+  subgroup        Subgroup           @relation(fields: [subgroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  fieldResearchId String?            @db.UniqueIdentifier
+  fieldResearchId String?            @db.Uuid
   fieldResearch   FieldResearch?     @relation(fields: [fieldResearchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   questions       Question[]         @relation("QuestionnaireQuestions")
@@ -180,44 +184,44 @@ model Questionnaire {
 }
 
 model QuestionSequence {
-  id              String        @id @default(uuid()) @db.UniqueIdentifier
+  id              String        @id @default(uuid()) @db.Uuid
   order           Int
-  isRequired      Boolean       @default(true) @db.Bit
-  isActive        Boolean       @default(true) @db.Bit
+  isRequired      Boolean       @default(true) 
+  isActive        Boolean       @default(true) 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
-  questionnaireId String        @db.UniqueIdentifier
+  questionnaireId String        @db.Uuid
   questionnaire   Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  questionId      String        @db.UniqueIdentifier
+  questionId      String        @db.Uuid
   question        Question      @relation(fields: [questionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("question_sequences")
 }
 
 model FieldResearch {
-  id                  String          @id @default(uuid()) @db.UniqueIdentifier
-  name                String          @db.NVarChar(200)
-  code                String?         @db.NVarChar(50)
+  id                  String          @id @default(uuid()) @db.Uuid
+  name                String          @db.VarChar(200)
+  code                String?         @db.VarChar(50)
   description         String?         @db.Text
-  location            String?         @db.NVarChar(100)
+  location            String?         @db.VarChar(100)
   startDate           DateTime?       @db.Date
   endDate             DateTime?       @db.Date
-  status              String          @default("planning") @db.NVarChar(50)
+  status              String          @default("planning") @db.VarChar(50)
   targetSampleSize    Int?
   currentSampleSize   Int             @default(0)
-  methodology         String?         @db.NVarChar(100)
-  ethicsApproval      String?         @db.NVarChar(100)
+  methodology         String?         @db.VarChar(100)
+  ethicsApproval      String?         @db.VarChar(100)
   observations        String?         @db.Text
-  isActive            Boolean         @default(true) @db.Bit
+  isActive            Boolean         @default(true) 
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   
-  subgroupId          String?         @db.UniqueIdentifier
+  subgroupId          String?         @db.Uuid
   subgroup            Subgroup?       @relation(fields: [subgroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  responsibleId       String?         @db.UniqueIdentifier
+  responsibleId       String?         @db.Uuid
   responsible         Researcher?     @relation(fields: [responsibleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   questionnaires      Questionnaire[]
@@ -226,28 +230,28 @@ model FieldResearch {
 }
 
 model Survey {
-  id                String           @id @default(uuid()) @db.UniqueIdentifier
-  title             String           @db.NVarChar(200)
-  description       String?          @db.NVarChar(1000)
-  objectives        String?          @db.NVarChar(1000)
-  targetAudience    String?          @db.NVarChar(500)
-  locations         String?          @db.NVarChar(500)
-  startDate         DateTime?        @db.DateTime2
-  endDate           DateTime?        @db.DateTime2
-  applicationMethod String           @db.NVarChar(50) // online, digital, printed, recorded, filmed, interview, phone
-  status            String           @default("planning") @db.NVarChar(50) // planning, in_progress, completed, cancelled
+  id                String           @id @default(uuid()) @db.Uuid
+  title             String           @db.VarChar(200)
+  description       String?          @db.VarChar(1000)
+  objectives        String?          @db.VarChar(1000)
+  targetAudience    String?          @db.VarChar(500)
+  locations         String?          @db.VarChar(500)
+  startDate         DateTime?        @db.Timestamp
+  endDate           DateTime?        @db.Timestamp
+  applicationMethod String           @db.VarChar(50) // online, digital, printed, recorded, filmed, interview, phone
+  status            String           @default("planning") @db.VarChar(50) // planning, in_progress, completed, cancelled
   estimatedResponses Int?
   actualResponses   Int              @default(0)
   budget            Decimal?         @db.Decimal(15, 2)
   notes             String?          @db.Text
-  isActive          Boolean          @default(true) @db.Bit
+  isActive          Boolean          @default(true) 
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   
-  questionnaireId   String           @db.UniqueIdentifier
+  questionnaireId   String           @db.Uuid
   questionnaire     Questionnaire    @relation(fields: [questionnaireId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  coordinatorId     String           @db.UniqueIdentifier
+  coordinatorId     String           @db.Uuid
   coordinator       Researcher       @relation(fields: [coordinatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("surveys")

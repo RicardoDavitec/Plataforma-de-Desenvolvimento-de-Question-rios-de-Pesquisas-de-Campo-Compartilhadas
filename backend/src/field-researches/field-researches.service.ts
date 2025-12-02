@@ -1,48 +1,60 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { FieldResearch } from './entities/field-research.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateFieldResearchDto } from './dto/create-field-research.dto';
 import { UpdateFieldResearchDto } from './dto/update-field-research.dto';
 
 @Injectable()
 export class FieldResearchesService {
-  constructor(
-    @InjectRepository(FieldResearch)
-    private fieldResearchRepository: Repository<FieldResearch>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createFieldResearchDto: CreateFieldResearchDto): Promise<FieldResearch> {
-    const fieldResearch = this.fieldResearchRepository.create(createFieldResearchDto);
-    return await this.fieldResearchRepository.save(fieldResearch);
-  }
-
-  async findAll(): Promise<FieldResearch[]> {
-    return await this.fieldResearchRepository.find({
-      relations: ['subgroup', 'responsibleResearcher', 'questionnaires'],
-      order: { name: 'ASC' },
+  async create(createFieldResearchDto: CreateFieldResearchDto) {
+    return await this.prisma.fieldResearch.create({
+      data: createFieldResearchDto,
     });
   }
 
-  async findBySubgroup(subgroupId: string): Promise<FieldResearch[]> {
-    return await this.fieldResearchRepository.find({
+  async findAll() {
+    return await this.prisma.fieldResearch.findMany({
+      include: {
+        subgroup: true,
+        responsible: true,
+        questionnaires: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findBySubgroup(subgroupId: string) {
+    return await this.prisma.fieldResearch.findMany({
       where: { subgroupId },
-      relations: ['responsibleResearcher', 'questionnaires'],
-      order: { name: 'ASC' },
+      include: {
+        responsible: true,
+        questionnaires: true,
+      },
+      orderBy: { name: 'asc' },
     });
   }
 
-  async findOne(id: string): Promise<FieldResearch> {
-    const fieldResearch = await this.fieldResearchRepository.findOne({
+  async findOne(id: string) {
+    const fieldResearch = await this.prisma.fieldResearch.findUnique({
       where: { id },
-      relations: [
-        'subgroup',
-        'subgroup.researchProject',
-        'subgroup.researchProject.institution',
-        'responsibleResearcher',
-        'questionnaires',
-        'questionnaires.questionSequences',
-      ],
+      include: {
+        subgroup: {
+          include: {
+            researchProject: {
+              include: {
+                institution: true,
+              },
+            },
+          },
+        },
+        responsible: true,
+        questionnaires: {
+          include: {
+            questionSequences: true,
+          },
+        },
+      },
     });
 
     if (!fieldResearch) {
@@ -52,14 +64,20 @@ export class FieldResearchesService {
     return fieldResearch;
   }
 
-  async update(id: string, updateFieldResearchDto: UpdateFieldResearchDto): Promise<FieldResearch> {
-    const fieldResearch = await this.findOne(id);
-    Object.assign(fieldResearch, updateFieldResearchDto);
-    return await this.fieldResearchRepository.save(fieldResearch);
+  async update(id: string, updateFieldResearchDto: UpdateFieldResearchDto) {
+    await this.findOne(id);
+    
+    return await this.prisma.fieldResearch.update({
+      where: { id },
+      data: updateFieldResearchDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const fieldResearch = await this.findOne(id);
-    await this.fieldResearchRepository.remove(fieldResearch);
+    await this.findOne(id);
+    
+    await this.prisma.fieldResearch.delete({
+      where: { id },
+    });
   }
 }

@@ -1,46 +1,54 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
 import { Questionnaire } from './entities/questionnaire.entity';
-import { Question } from '../questions/entities/question.entity';
 import { CreateQuestionnaireDto } from './dto/create-questionnaire.dto';
 import { UpdateQuestionnaireDto } from './dto/update-questionnaire.dto';
 import { AddQuestionsDto } from './dto/add-questions.dto';
+import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class QuestionnairesService {
-  constructor(
-    @InjectRepository(Questionnaire)
-    private questionnairesRepository: Repository<Questionnaire>,
-    @InjectRepository(Question)
-    private questionsRepository: Repository<Question>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createQuestionnaireDto: CreateQuestionnaireDto): Promise<Questionnaire> {
+  async create(createQuestionnaireDto: CreateQuestionnaireDto): Promise<any> {
     const { questionIds, ...questionnaireData } = createQuestionnaireDto;
 
-    const questionnaire = this.questionnairesRepository.create(questionnaireData);
-
-    if (questionIds && questionIds.length > 0) {
-      questionnaire.questions = await this.questionsRepository.find({
-        where: { id: In(questionIds) },
-      });
-    }
-
-    return await this.questionnairesRepository.save(questionnaire);
-  }
-
-  async findAll(): Promise<Questionnaire[]> {
-    return await this.questionnairesRepository.find({
-      relations: ['creator', 'subgroup', 'questions'],
-      order: { createdAt: 'DESC' },
+    return await this.prisma.questionnaire.create({
+      data: {
+        ...questionnaireData,
+        ...(questionIds && questionIds.length > 0 && {
+          questions: {
+            connect: questionIds.map((id) => ({ id })),
+          },
+        }),
+      } as any,
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+      },
     });
   }
 
-  async findOne(id: string): Promise<Questionnaire> {
-    const questionnaire = await this.questionnairesRepository.findOne({
+  async findAll(): Promise<any[]> {
+    return await this.prisma.questionnaire.findMany({
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findOne(id: string): Promise<any> {
+    const questionnaire = await this.prisma.questionnaire.findUnique({
       where: { id },
-      relations: ['creator', 'subgroup', 'questions', 'surveys'],
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+        surveys: true,
+      },
     });
 
     if (!questionnaire) {
@@ -53,47 +61,95 @@ export class QuestionnairesService {
   async update(
     id: string,
     updateQuestionnaireDto: UpdateQuestionnaireDto,
-  ): Promise<Questionnaire> {
-    const questionnaire = await this.findOne(id);
+  ): Promise<any> {
+    await this.findOne(id);
     const { questionIds, ...questionnaireData } = updateQuestionnaireDto;
 
-    Object.assign(questionnaire, questionnaireData);
-
+    // Se questionIds foi fornecido, substitui todas as questões
     if (questionIds) {
-      questionnaire.questions = await this.questionsRepository.find({
-        where: { id: In(questionIds) },
+      await this.prisma.questionnaire.update({
+        where: { id },
+        data: {
+          questions: {
+            set: [],
+          },
+        },
       });
     }
 
-    return await this.questionnairesRepository.save(questionnaire);
+    return await this.prisma.questionnaire.update({
+      where: { id },
+      data: {
+        ...questionnaireData,
+        ...(questionIds && {
+          questions: {
+            connect: questionIds.map((id) => ({ id })),
+          },
+        }),
+      } as any,
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+      },
+    });
   }
 
-  async addQuestions(id: string, addQuestionsDto: AddQuestionsDto): Promise<Questionnaire> {
-    const questionnaire = await this.findOne(id);
+  async addQuestions(id: string, addQuestionsDto: AddQuestionsDto): Promise<any> {
+    await this.findOne(id);
 
-    const newQuestions = await this.questionsRepository.find({
-      where: { id: In(addQuestionsDto.questionIds) },
+    // Busca questões existentes para evitar duplicatas
+    const existing = await this.prisma.questionnaire.findUnique({
+      where: { id },
+      include: {
+        questions: {
+          select: { id: true },
+        },
+      },
     });
 
-    // Adicionar questões que ainda não estão no questionário
-    const existingIds = new Set(questionnaire.questions.map((q) => q.id));
-    const questionsToAdd = newQuestions.filter((q) => !existingIds.has(q.id));
+    const existingIds = new Set(existing.questions.map((q) => q.id));
+    const newQuestionIds = addQuestionsDto.questionIds.filter((qid) => !existingIds.has(qid));
 
-    questionnaire.questions = [...questionnaire.questions, ...questionsToAdd];
+    if (newQuestionIds.length === 0) {
+      return this.findOne(id);
+    }
 
-    return await this.questionnairesRepository.save(questionnaire);
+    return await this.prisma.questionnaire.update({
+      where: { id },
+      data: {
+        questions: {
+          connect: newQuestionIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+      },
+    });
   }
 
-  async removeQuestion(id: string, questionId: string): Promise<Questionnaire> {
-    const questionnaire = await this.findOne(id);
+  async removeQuestion(id: string, questionId: string): Promise<any> {
+    await this.findOne(id);
 
-    questionnaire.questions = questionnaire.questions.filter((q) => q.id !== questionId);
-
-    return await this.questionnairesRepository.save(questionnaire);
+    return await this.prisma.questionnaire.update({
+      where: { id },
+      data: {
+        questions: {
+          disconnect: { id: questionId },
+        },
+      },
+      include: {
+        creator: true,
+        subgroup: true,
+        questions: true,
+      },
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const questionnaire = await this.findOne(id);
-    await this.questionnairesRepository.remove(questionnaire);
+    await this.findOne(id);
+    await this.prisma.questionnaire.delete({ where: { id } });
   }
 }

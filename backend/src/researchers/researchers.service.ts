@@ -1,21 +1,16 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Researcher } from './entities/researcher.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateResearcherDto } from './dto/create-researcher.dto';
 import { UpdateResearcherDto } from './dto/update-researcher.dto';
 
 @Injectable()
 export class ResearchersService {
-  constructor(
-    @InjectRepository(Researcher)
-    private researchersRepository: Repository<Researcher>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createResearcherDto: CreateResearcherDto): Promise<Researcher> {
+  async create(createResearcherDto: CreateResearcherDto) {
     // Verificar se o email já existe
-    const existingResearcher = await this.researchersRepository.findOne({
+    const existingResearcher = await this.prisma.researcher.findUnique({
       where: { email: createResearcherDto.email },
     });
 
@@ -26,26 +21,54 @@ export class ResearchersService {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(createResearcherDto.password, 10);
 
-    const researcher = this.researchersRepository.create({
-      ...createResearcherDto,
-      password: hashedPassword,
-    });
-
-    return await this.researchersRepository.save(researcher);
-  }
-
-  async findAll(): Promise<Researcher[]> {
-    return await this.researchersRepository.find({
-      relations: ['subgroup', 'questions'],
-      select: ['id', 'name', 'email', 'createdAt', 'updatedAt'],
+    return await this.prisma.researcher.create({
+      data: {
+        ...createResearcherDto,
+        password: hashedPassword,
+      },
     });
   }
 
-  async findOne(id: string): Promise<Researcher> {
-    const researcher = await this.researchersRepository.findOne({
+  async findAll() {
+    return await this.prisma.researcher.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        subgroup: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const researcher = await this.prisma.researcher.findUnique({
       where: { id },
-      relations: ['subgroup', 'questions'],
-      select: ['id', 'name', 'email', 'createdAt', 'updatedAt'],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone: true,
+        institution: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        subgroup: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!researcher) {
@@ -55,33 +78,42 @@ export class ResearchersService {
     return researcher;
   }
 
-  async findByEmail(email: string): Promise<Researcher | null> {
-    return await this.researchersRepository.findOne({
+  async findByEmail(email: string) {
+    return await this.prisma.researcher.findUnique({
       where: { email },
-      relations: ['subgroup'],
+      include: {
+        subgroup: true,
+      },
     });
   }
 
-  async update(id: string, updateResearcherDto: UpdateResearcherDto): Promise<Researcher> {
-    const researcher = await this.findOne(id);
+  async update(id: string, updateResearcherDto: UpdateResearcherDto) {
+    // Verificar se o pesquisador existe
+    await this.findOne(id);
     
     // Se o email estiver sendo atualizado, verificar se já existe
-    if (updateResearcherDto.email && updateResearcherDto.email !== researcher.email) {
-      const existingResearcher = await this.researchersRepository.findOne({
+    if (updateResearcherDto.email) {
+      const existingResearcher = await this.prisma.researcher.findUnique({
         where: { email: updateResearcherDto.email },
       });
 
-      if (existingResearcher) {
+      if (existingResearcher && existingResearcher.id !== id) {
         throw new ConflictException('Email já cadastrado');
       }
     }
 
-    Object.assign(researcher, updateResearcherDto);
-    return await this.researchersRepository.save(researcher);
+    return await this.prisma.researcher.update({
+      where: { id },
+      data: updateResearcherDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const researcher = await this.findOne(id);
-    await this.researchersRepository.remove(researcher);
+    // Verificar se o pesquisador existe
+    await this.findOne(id);
+    
+    await this.prisma.researcher.delete({
+      where: { id },
+    });
   }
 }

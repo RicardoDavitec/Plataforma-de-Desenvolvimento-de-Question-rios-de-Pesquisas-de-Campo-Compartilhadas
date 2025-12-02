@@ -1,34 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Subgroup } from './entities/subgroup.entity';
+import { PrismaService } from '../database/prisma.service';
 import { CreateSubgroupDto } from './dto/create-subgroup.dto';
 import { UpdateSubgroupDto } from './dto/update-subgroup.dto';
 
 @Injectable()
 export class SubgroupsService {
-  constructor(
-    @InjectRepository(Subgroup)
-    private subgroupsRepository: Repository<Subgroup>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createSubgroupDto: CreateSubgroupDto): Promise<Subgroup> {
-    const subgroup = this.subgroupsRepository.create(createSubgroupDto);
-    return await this.subgroupsRepository.save(subgroup);
+  async create(createSubgroupDto: CreateSubgroupDto) {
+    return await this.prisma.subgroup.create({
+      data: createSubgroupDto,
+    });
   }
 
-  async findAll(): Promise<Subgroup[]> {
-    return await this.subgroupsRepository.find();
+  async findAll() {
+    return await this.prisma.subgroup.findMany();
   }
 
-  async findByProject(researchProjectId: string): Promise<Subgroup[]> {
-    return await this.subgroupsRepository.find({
+  async findByProject(researchProjectId: string) {
+    return await this.prisma.subgroup.findMany({
       where: { researchProjectId },
     });
   }
 
-  async findOne(id: string): Promise<Subgroup> {
-    const subgroup = await this.subgroupsRepository.findOne({
+  async findOne(id: string) {
+    const subgroup = await this.prisma.subgroup.findUnique({
       where: { id },
     });
 
@@ -39,14 +35,20 @@ export class SubgroupsService {
     return subgroup;
   }
 
-  async update(id: string, updateSubgroupDto: UpdateSubgroupDto): Promise<Subgroup> {
-    const subgroup = await this.findOne(id);
-    Object.assign(subgroup, updateSubgroupDto);
-    return await this.subgroupsRepository.save(subgroup);
+  async update(id: string, updateSubgroupDto: UpdateSubgroupDto) {
+    await this.findOne(id);
+    
+    return await this.prisma.subgroup.update({
+      where: { id },
+      data: updateSubgroupDto,
+    });
   }
 
   async remove(id: string): Promise<void> {
-    const subgroup = await this.findOne(id);
-    await this.subgroupsRepository.remove(subgroup);
+    await this.findOne(id);
+    
+    await this.prisma.subgroup.delete({
+      where: { id },
+    });
   }
 }
