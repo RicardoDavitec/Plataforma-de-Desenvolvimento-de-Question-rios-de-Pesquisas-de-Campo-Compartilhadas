@@ -1,0 +1,45 @@
+Sistema ResearchQuest:
+O sistema deve ser desenvolvido em Node.js no Ambiente Linux Ubuntu.
+Utilize o framework NEXT para desenvolvimento, baseado em React para criar o front-end
+Utilize o framework NEST para desenvolver o back-end Node.js utilizando TypeScript.
+Utilize PRISMA ORM como ferramenta de integração com bancos de dados.
+Utilize PostgreSQL como banco de dados 
+
+O sistema deve rodar online, aberto a usuários cadastrados e logados inicialmente através de rotinas signUp e SignIN.
+
+A finalidade do sistema é compor um sistema de registro de perguntas (questôes), destinadas a criação de questionários
+de pesquisa de campo voltadas para pesquisas na área de saúde.
+
+O sistema deve ter um sistema de autenticação de usuários, onde os usuários cadastrados devem ser capazes de acessar o sistema, 
+preencher o cadatro como pesquisador informando dados cadastrais gerais de pessoa física, acadêmica e profissional.
+Cada pesquisador deve ter uma função específica cadastrada: Aluno, Pesquisador, Coordenador de projeto, Coordenador de grupo, Orientador, Preceptor, Convidado, 
+Voluntário, Docente.
+
+O pesquisador deve ser filiado a uma instituição principal e opcionalmente a mais uma instituição secundária.
+
+As instituições podem ser acadêmicas, ou qualquer outra instituição pública ou privada.
+As instituições devem ser cadastradas com dados cadastrais de pessoa jurídica.
+Cada instituição deve ter um "Coordenador de Projeto" responsável, cadastrado no sistema (tabela de usuários)
+
+Isntituições acadêmicas podem possuir um ou mais projetos de pesquisa.
+
+Cada projeto de pesquisa deve possuir um cadastro com informações cadastrais de identificação, vigência, Agência Finaciadora, Valor do investimento,
+descrição, objetivos, metodologia, cronograma, Instituição proprietária, etc.
+Cada projeto deve ter um mou mais pesquisadores, "Coordenador de Grupo",  responsáveis cadastrados como usuários no sistema.
+
+Cada projeto de pesquisa pode possuir um ou mais grupos de pesquisa subordinados.
+Cada grupo de pesquisa deve possuir dados cadatrais gerais, um "coordenador de Grupo", cadastrado no projeto.
+Cada grupo de poesquisa deve possuir outros usuáriosres cadastrados como usuários no sistema, nas diversas funções.
+
+Os grupos de Pesquisa podem ter registro de Pesquisas de Campo, com dados cadastrais gerais, Usuários participantes.
+Cada Pesquisa de Campo pode ter questionários, com dados cadastrais gerais, usuários participantes, local de aplicação, data, etc.
+
+Os questionários podem ter perguntas, com dados cadastrais gerais, Tipo de pergunta, restrições, público alvo, objetivo, etc.
+O sistema deve prover o registro dos questionários, para aplicação impressa, entrevista gravada, filmada, digital, online
+
+O processo de inclusão, edição das perguntas deve prover recurso de busca por similaridade com todas as questôes previamente registradas no sistema
+em tempo real, para reduzir, simplificar, minimizar e equalizar o tamanho das tabelas envolvidas. O usuário proponente da questâo poderá escolher entre
+mesclar, substituir, concatenar, manter, etc. a questão aser registrada em comparação com as questões sugeridas por similaridade.
+Caso a Questão semelhante sugerida receba proposição de alteração, o usuário criador anterior deve ser comunicado e convidado a autorizar ou não a alteração de sua questão
+
+O sistema deve prover recursos interativos de comunicação entre os usuários, com recursos de comentários, anexos, etc. por meio de e-mail, SMS, etc.

@@ -1,0 +1,593 @@
+// Prisma Schema for ResearchQuest
+// Database: PostgreSQL (pgVector extension optional - to be added later)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ALUNO
+  PESQUISADOR
+  COORDENADOR_PROJETO
+  COORDENADOR_GRUPO
+  ORIENTADOR
+  PRECEPTOR
+  CONVIDADO
+  VOLUNTARIO
+  DOCENTE
+}
+
+enum InstitutionType {
+  ACADEMICA
+  PUBLICA
+  PRIVADA
+  ONG
+  HOSPITAL
+  CLINICA
+}
+
+enum ProjectStatus {
+  EM_ANDAMENTO
+  CONCLUIDO
+  SUSPENSO
+}
+
+enum QuestionType {
+  MULTIPLA_ESCOLHA
+  ABERTA
+  ESCALA_LIKERT
+  SIM_NAO
+  NUMERICA
+  DATA
+  HORA
+}
+
+enum QuestionCategory {
+  DEMOGRAFICA
+  CLINICA
+  COMPORTAMENTAL
+  SOCIAL
+  ECONOMICA
+  PSICOLOGICA
+}
+
+enum QuestionScope {
+  LOCAL
+  INSTITUCIONAL
+  MUNICIPAL
+  ESTADUAL
+  REGIONAL
+  NACIONAL
+  INTERNACIONAL
+}
+
+enum QuestionnaireType {
+  IMPRESSO
+  ENTREVISTA_GRAVADA
+  ENTREVISTA_FILMADA
+  DIGITAL
+  ONLINE
+}
+
+enum ApprovalStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+enum LogAction {
+  CRIAR
+  EDITAR
+  EXCLUIR
+  APROVAR
+  REJEITAR
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  cpf       String   @unique
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Profile information
+  researcher Researcher?
+
+  // Audit logs
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Researcher {
+  id     String   @id @default(uuid())
+  userId String   @unique
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   UserRole @default(PESQUISADOR)
+
+  // Personal information
+  birthDate  DateTime?
+  address    String?
+  city       String?
+  state      String?
+  zipCode    String?
+  country    String?   @default("Brasil")
+
+  // Academic information
+  latesId         String?
+  orcidId         String?
+  academicTitle   String? // Graduação, Mestrado, Doutorado, Pós-Doc
+  researchArea    String?
+  specialization  String?
+
+  // Professional information
+  professionalId  String? // CRM, CRO, COREN, etc.
+  professionalType String? // Médico, Enfermeiro, Dentista, etc.
+
+  // Institution relationships
+  primaryInstitutionId   String
+  primaryInstitution     Institution @relation("PrimaryInstitution", fields: [primaryInstitutionId], references: [id])
+  secondaryInstitutionId String?
+  secondaryInstitution   Institution? @relation("SecondaryInstitution", fields: [secondaryInstitutionId], references: [id])
+
+  // Institution coordination
+  coordinatedInstitutions Institution[] @relation("InstitutionCoordinator")
+
+  // Project relationships
+  projectCoordinations ProjectCoordinator[]
+  projectMemberships   ProjectMember[]
+
+  // Research group relationships
+  groupCoordinations ResearchGroup[] @relation("GroupCoordinator")
+  groupMemberships   GroupMember[]
+
+  // Field survey participations
+  surveyParticipations SurveyParticipant[]
+
+  // Questionnaire participations
+  questionnaireParticipations QuestionnaireParticipant[]
+
+  // Questions created
+  questionsCreated Question[] @relation("QuestionCreator")
+
+  // Approval requests
+  approvalRequestsCreated  ApprovalRequest[] @relation("ApprovalRequester")
+  approvalRequestsApproved ApprovalRequest[] @relation("ApprovalApprover")
+
+  // Notifications
+  notificationsSent     Notification[] @relation("NotificationSender")
+  notificationsReceived Notification[] @relation("NotificationReceiver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("researchers")
+}
+
+// ============================================
+// INSTITUTIONS
+// ============================================
+
+model Institution {
+  id   String          @id @default(uuid())
+  cnpj String          @unique
+  name String
+  type InstitutionType @default(ACADEMICA)
+
+  // Contact information
+  email   String?
+  phone   String?
+  website String?
+
+  // Address
+  address String?
+  city    String?
+  state   String?
+  zipCode String?
+  country String? @default("Brasil")
+
+  // Coordinator (obrigatório)
+  coordinatorId String
+  coordinator   Researcher @relation("InstitutionCoordinator", fields: [coordinatorId], references: [id])
+
+  // Additional information
+  description String?
+  foundedAt   DateTime?
+
+  // Relationships
+  primaryResearchers   Researcher[] @relation("PrimaryInstitution")
+  secondaryResearchers Researcher[] @relation("SecondaryInstitution")
+  projects             Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("institutions")
+}
+
+// ============================================
+// PROJECTS
+// ============================================
+
+model Project {
+  id            String        @id @default(uuid())
+  title         String
+  description   String?
+  status        ProjectStatus @default(EM_ANDAMENTO)
+  
+  // CEP information
+  cepProtocol   String?       @unique // Número de protocolo CEP
+  researchArea  String?       // Área de pesquisa
+  keywords      String[]      // Palavras-chave
+
+  // Funding information
+  fundingAgency String?
+  fundingAmount Decimal?      @db.Decimal(15, 2)
+
+  // Project timeline
+  startDate DateTime
+  endDate   DateTime?
+
+  // Methodology
+  methodology String?
+  objectives  String?
+  schedule    String?
+
+  // Institution
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+
+  // Coordinators
+  coordinators ProjectCoordinator[]
+  
+  // Members
+  members ProjectMember[]
+
+  // Research groups
+  researchGroups ResearchGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model ProjectCoordinator {
+  id           String     @id @default(uuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  researcherId String
+  researcher   Researcher @relation(fields: [researcherId], references: [id])
+  assignedAt   DateTime   @default(now())
+
+  @@unique([projectId, researcherId])
+  @@map("project_coordinators")
+}
+
+model ProjectMember {
+  id           String     @id @default(uuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  researcherId String
+  researcher   Researcher @relation(fields: [researcherId], references: [id])
+  role         UserRole
+  joinedAt     DateTime   @default(now())
+
+  @@unique([projectId, researcherId])
+  @@map("project_members")
+}
+
+// ============================================
+// RESEARCH GROUPS
+// ============================================
+
+model ResearchGroup {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  // Project relationship
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Coordinator (obrigatório)
+  coordinatorId String
+  coordinator   Researcher @relation("GroupCoordinator", fields: [coordinatorId], references: [id])
+
+  // Members
+  members GroupMember[]
+
+  // Field surveys
+  fieldSurveys FieldSurvey[]
+
+  // Questions linked to group
+  questions Question[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("research_groups")
+}
+
+model GroupMember {
+  id             String        @id @default(uuid())
+  researchGroupId String
+  researchGroup  ResearchGroup @relation(fields: [researchGroupId], references: [id], onDelete: Cascade)
+  researcherId   String
+  researcher     Researcher    @relation(fields: [researcherId], references: [id])
+  role           UserRole
+  joinedAt       DateTime      @default(now())
+
+  @@unique([researchGroupId, researcherId])
+  @@map("group_members")
+}
+
+// ============================================
+// FIELD SURVEYS
+// ============================================
+
+model FieldSurvey {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  location    String?
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // Research group relationship
+  researchGroupId String
+  researchGroup   ResearchGroup @relation(fields: [researchGroupId], references: [id], onDelete: Cascade)
+
+  // Participants
+  participants SurveyParticipant[]
+
+  // Questionnaires
+  questionnaires Questionnaire[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("field_surveys")
+}
+
+model SurveyParticipant {
+  id            String      @id @default(uuid())
+  fieldSurveyId String
+  fieldSurvey   FieldSurvey @relation(fields: [fieldSurveyId], references: [id], onDelete: Cascade)
+  researcherId  String
+  researcher    Researcher  @relation(fields: [researcherId], references: [id])
+  role          UserRole
+  joinedAt      DateTime    @default(now())
+
+  @@unique([fieldSurveyId, researcherId])
+  @@map("survey_participants")
+}
+
+// ============================================
+// QUESTIONNAIRES
+// ============================================
+
+model Questionnaire {
+  id          String            @id @default(uuid())
+  title       String
+  description String?
+  type        QuestionnaireType @default(ONLINE)
+  
+  // Application details
+  applicationLocation String?
+  applicationDate     DateTime?
+  estimatedDuration   Int? // em minutos
+
+  // Field survey relationship (opcional)
+  fieldSurveyId String?
+  fieldSurvey   FieldSurvey? @relation(fields: [fieldSurveyId], references: [id])
+
+  // Participants
+  participants QuestionnaireParticipant[]
+
+  // Questions
+  questions QuestionnaireQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("questionnaires")
+}
+
+model QuestionnaireParticipant {
+  id              String        @id @default(uuid())
+  questionnaireId String
+  questionnaire   Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  researcherId    String
+  researcher      Researcher    @relation(fields: [researcherId], references: [id])
+  role            UserRole
+  joinedAt        DateTime      @default(now())
+
+  @@unique([questionnaireId, researcherId])
+  @@map("questionnaire_participants")
+}
+
+// ============================================
+// QUESTIONS
+// ============================================
+
+model Question {
+  id       String         @id @default(uuid())
+  text     String
+  type     QuestionType   @default(ABERTA)
+  category QuestionCategory @default(DEMOGRAFICA)
+  scope    QuestionScope  @default(LOCAL)
+
+  // Validation rules
+  isRequired      Boolean  @default(false)
+  minValue        Float?
+  maxValue        Float?
+  validationRegex String?
+  helpText        String?
+
+  // Multiple choice options (JSON array)
+  options Json? // ["Opção 1", "Opção 2", "Opção 3"]
+
+  // Likert scale configuration
+  likertMin   Int? // 1
+  likertMax   Int? // 5
+  likertLabels Json? // ["Discordo totalmente", ..., "Concordo totalmente"]
+
+  // Question metadata
+  objective   String?
+  targetAudience String?
+  
+  // Creator
+  creatorId String
+  creator   Researcher @relation("QuestionCreator", fields: [creatorId], references: [id])
+
+  // Research group relationship (opcional)
+  researchGroupId String?
+  researchGroup   ResearchGroup? @relation(fields: [researchGroupId], references: [id])
+
+  // Versioning
+  version     Int      @default(1)
+  parentId    String? // ID da questão original se esta for uma versão
+  parent      Question?  @relation("QuestionVersions", fields: [parentId], references: [id])
+  versions    Question[] @relation("QuestionVersions")
+
+  // Similarity search (pgVector) - TO BE IMPLEMENTED
+  // embedding   Unsupported("vector(1536)")? // OpenAI/Cohere embedding
+  // Note: Will be added after pgVector extension is installed on PostgreSQL server
+
+  // Questionnaires using this question
+  questionnaireQuestions QuestionnaireQuestion[]
+
+  // Approval requests
+  approvalRequests ApprovalRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("questions")
+}
+
+model QuestionnaireQuestion {
+  id              String        @id @default(uuid())
+  questionnaireId String
+  questionnaire   Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question      @relation(fields: [questionId], references: [id])
+  order           Int           @default(0)
+  
+  // Conditional logic
+  showIfQuestionId String? // Mostrar apenas se outra questão tiver determinada resposta
+  showIfAnswer     String? // Resposta que dispara a exibição
+
+  createdAt DateTime @default(now())
+
+  @@unique([questionnaireId, questionId])
+  @@map("questionnaire_questions")
+}
+
+// ============================================
+// APPROVAL SYSTEM
+// ============================================
+
+model ApprovalRequest {
+  id          String         @id @default(uuid())
+  type        String // "USER_REGISTRATION", "QUESTION_EDIT", "GROUP_CREATION", "SURVEY_CREATION"
+  status      ApprovalStatus @default(PENDENTE)
+  
+  // Requester
+  requesterId String
+  requester   Researcher @relation("ApprovalRequester", fields: [requesterId], references: [id])
+
+  // Approver
+  approverId String?
+  approver   Researcher? @relation("ApprovalApprover", fields: [approverId], references: [id])
+
+  // Related entities (nullable, depends on type)
+  questionId String?
+  question   Question? @relation(fields: [questionId], references: [id])
+
+  // Request details
+  requestData Json? // Dados da solicitação
+  comments    String?
+  
+  requestedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+
+  @@map("approval_requests")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id      String  @id @default(uuid())
+  type    String // "APPROVAL_REQUEST", "QUESTION_SIMILARITY", "USER_REGISTERED", etc.
+  title   String
+  message String
+  read    Boolean @default(false)
+
+  // Sender
+  senderId String?
+  sender   Researcher? @relation("NotificationSender", fields: [senderId], references: [id])
+
+  // Receiver
+  receiverId String
+  receiver   Researcher @relation("NotificationReceiver", fields: [receiverId], references: [id])
+
+  // Related data
+  relatedId   String? // ID da entidade relacionada
+  relatedType String? // Tipo da entidade
+
+  // Delivery
+  sentViaEmail Boolean @default(false)
+  sentViaSMS   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  action     LogAction
+  entityType String // "User", "Question", "Project", etc.
+  entityId   String
+  
+  // User who performed the action
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Changes details
+  oldData Json?
+  newData Json?
+  
+  // Metadata
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}

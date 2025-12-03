@@ -1,0 +1,52 @@
+Rode o processamento usando gitHub copilot, baseadon minha conta ativa, em prioridade alta.
+Desenvolva em etapas bem definidas de forma a facilitar e evitar complexidade e intercorrências de difícil solução. 
+Crie um organograma com checlist bem estruturado.
+Modelagem de dados: Prisma schema 
+Autenticação: Simplificada, sem autenticação externa
+Similaridade: Considerar integração com serviços de embedding PostgreSQL com pgvector
+Notificações: Sistema de filas (Bull/BullMQ) para processamento assíncrono
+Auditoria: Registro de alterações e histórico de aprovações em tabela de log.
+
+
+faça uso de testes em escala de complexidade para garantir a viabilidade de funcionalidade e execuidade do processo;
+Instale as extrenôes necessária e as sugeridas;
+Verifique se as ferramentas e serviços necessários esstão instalados e ativos. Instale as ausentes se necessário;
+Utilize o Host 172.21.31.152, Porta 5432, Usuário pmfdtidev, password pmfdtipwd e o banco de dados ricardodavid para criação da base de dados e tabelas;
+Crie um docker para compor o ambiente de produção do sistema.
+Modelkagem de dados:
+    Instituições - CNPJ, coordenador de projeto obrigatórios. Demais dados informacionais.
+    Pesquisadore - CPF obrigatório. Demais dados informacionais. ou para uso nas relações operacionais;
+    Projeto de pesquisa - incluir as sugestôes: 
+        Número de protocolo CEP (Comitê de Ética)
+        Status do projeto (Em andamento, Concluído, Suspenso)
+        Área de pesquisa (taxonomia específica)
+    Questôes/perguntas - incluir:
+        Tipos específicos (Múltipla escolha, Aberta, Escala Likert, Sim/Não, Numérica...)
+        Validações (Obrigatória, Range de valores, Padrões de resposta)
+        Categorização (Demográfica, Clínica, Comportamental...)
+        Versionamento (Histórico de alterações)
+        Abrangência (local, instituciuonal, municipal, estadual, regional, nacional, internacional)
+Regras de negócio específicas:
+Apenas o coordenador da isntituição pode criar projetos.
+Apenas o coordenador de projeto pode criar grupos de pesquisa.
+Qualquer Pesquisador incluido no grupo pode criar pesquisa de campo.
+Qualquer pesquisador pode criar Perguntas/questões.
+As perguntas/questões podem ou não estar vinculadas a um ou mais questionários ou pesquisas de campo. 
+As perguntas/questões podem ou não estar vinculadas a um ou mais grupos de pesquisa.
+
+Hierarquia de Aprovação:
+    Alteração de questões requerem aprovação do autor criador da questâo.
+    Cadastro de usuário deve ser comunicada ao coordenador de projeto da instituição e ao coordenador de grupo.
+    Coordenadores podem aprovar ou rejeitar o cadastro de usuários.
+    Coordenadores de projeto podem aprovar ou rejeitar o cadastro de grupos de pesquisa.
+    Coordenadores de grupo podem aprovar ou rejeitar o cadastro de pesquisa de campo.
+
+    Similaridades de questôes:
+        Threshold de similaridade setáveis no formulário de inserção de questão (ex: >70%, >80%, >90%)
+        Quantas até 30 sugestões  (5, 10, 20?)
+        setar o ambito de alcance, buscar em todas as questões com âmbito iqual ou inferior ao alvo
+        coordenado do grupo decide os critéri0os de mesclagem do algoritmo de mesclagem
+
+Integração Externa:
+    Sistema CEP (comitê de Ética)
+    Google  forms

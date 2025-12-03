@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgVector
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: researchquest-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-researchquest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-researchquest2025}
+      POSTGRES_DB: ${POSTGRES_DB:-researchquest}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/api/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - researchquest-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-researchquest}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Bull queues
+  redis:
+    image: redis:7-alpine
+    container_name: researchquest-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - researchquest-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS API
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: researchquest-api
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-researchquest}:${POSTGRES_PASSWORD:-researchquest2025}@postgres:5432/${POSTGRES_DB:-researchquest}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-research-quest-super-secret-key-2025}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      API_PORT: 3001
+      NODE_ENV: production
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    networks:
+      - researchquest-network
+    command: sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  # Next.js Frontend
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    container_name: researchquest-web
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3001
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - researchquest-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  researchquest-network:
+    driver: bridge
