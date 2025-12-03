@@ -47,7 +47,11 @@
 ### 1.2 Configuração de Projeto
 - [x] Criar estrutura de apps/api (NestJS)
 - [ ] Criar estrutura de apps/web (Next.js)
-- [ ] Configurar variáveis de ambiente (.env)
+- [x] Configurar variáveis de ambiente (.env)
+  - [x] Arquivo .env na raiz configurado
+  - [x] Arquivo .env em apps/api/ configurado
+  - [x] Conexão com banco externo testada (172.21.31.152:5432)
+  - [x] Database ricardodavid verificado e acessível
 - [ ] Configurar ESLint e Prettier
 - [ ] Configurar Husky para pre-commit hooks
 - [ ] Configurar CommitLint
