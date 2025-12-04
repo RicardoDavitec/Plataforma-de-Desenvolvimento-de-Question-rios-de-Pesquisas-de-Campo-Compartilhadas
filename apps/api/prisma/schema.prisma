@@ -103,6 +103,7 @@ model User {
   cpf       String   @unique
   name      String
   phone     String?
+  role      UserRole @default(PESQUISADOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -150,7 +151,7 @@ model Researcher {
   country    String?   @default("Brasil")
 
   // Academic information
-  latesId         String?
+  lattesNumber    String?
   orcidId         String?
   academicTitle   String? // Graduação, Mestrado, Doutorado, Pós-Doc
   researchArea    String?
@@ -205,10 +206,11 @@ model Researcher {
 // ============================================
 
 model Institution {
-  id   String          @id @default(uuid())
-  cnpj String          @unique
-  name String
-  type InstitutionType @default(ACADEMICA)
+  id      String          @id @default(uuid())
+  cnpj    String          @unique
+  name    String
+  acronym String?
+  type    InstitutionType @default(ACADEMICA)
 
   // Contact information
   email   String?
@@ -511,6 +513,7 @@ model QuestionnaireQuestion {
   questionId      String
   question        Question      @relation(fields: [questionId], references: [id])
   order           Int           @default(0)
+  required        Boolean       @default(false)
   
   // Conditional logic
   showIfQuestionId String? // Mostrar apenas se outra questão tiver determinada resposta

@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "ResearchQuest Backend API",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",

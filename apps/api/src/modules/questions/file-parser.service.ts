@@ -172,7 +172,6 @@ export class FileParserService {
             separator: delimiter,
             mapHeaders: ({ header }) => header.trim(), // Remove espaços dos nomes de colunas
             mapValues: ({ value }) => value.trim(), // Remove espaços dos valores
-            skipEmptyLines: true, // Ignora linhas vazias
           }))
           .on('data', (row) => {
             lineNumber++;
@@ -654,7 +653,7 @@ export class FileParserService {
         }
         break;
 
-      case QuestionType.TEXTO_ABERTO:
+      case QuestionType.ABERTA:
         // Validar validationRegex se fornecido
         if (question.validationRegex) {
           try {

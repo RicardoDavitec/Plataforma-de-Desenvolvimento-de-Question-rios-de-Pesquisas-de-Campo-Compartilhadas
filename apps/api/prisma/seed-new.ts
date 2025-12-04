@@ -6,15 +6,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed do banco de dados...');
 
-  // Limpar dados existentes (cuidado em produção!)
+  // Limpar dados existentes
   console.log('🗑️  Limpando dados existentes...');
   await prisma.notification.deleteMany();
-  await prisma.approval.deleteMany();
+  await prisma.approvalRequest.deleteMany();
+  await prisma.surveyParticipant.deleteMany();
   await prisma.fieldSurvey.deleteMany();
+  await prisma.questionnaireParticipant.deleteMany();
   await prisma.questionnaireQuestion.deleteMany();
   await prisma.questionnaire.deleteMany();
   await prisma.projectMember.deleteMany();
-  await prisma.researchGroupMember.deleteMany();
+  await prisma.projectCoordinator.deleteMany();
+  await prisma.groupMember.deleteMany();
   await prisma.question.deleteMany();
   await prisma.project.deleteMany();
   await prisma.researchGroup.deleteMany();
@@ -23,171 +26,183 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.institution.deleteMany();
 
-  // 1. Criar usuário coordenador
-  console.log('👤 Criando usuário coordenador...');
   const hashedPassword = await bcrypt.hash('Senha@123', 12);
+
+  // 1. Criar Instituição Principal
+  console.log('🏛️  Criando instituições...');
+  const institution = await prisma.institution.create({
+    data: {
+      cnpj: '12345678000190',
+      name: '#Universidade Federal de Teste',
+      acronym: '#UFT',
+      type: InstitutionType.ACADEMICA,
+      email: 'contato@uft.edu.br',
+      phone: '1133334444',
+      website: 'https://www.uft.edu.br',
+      address: '#Rua das Flores, 123',
+      city: '#São Paulo',
+      state: 'SP',
+      zipCode: '01234567',
+      country: 'Brasil',
+      description: '#Instituição de ensino superior focada em pesquisa científica',
+      foundedAt: new Date('1960-01-01'),
+    },
+  });
+
+  // 2. Criar Usuários e Pesquisadores
+  console.log('👤 Criando usuários e pesquisadores...');
   
   const coordUser = await prisma.user.create({
     data: {
       email: 'coordenador@teste.com',
       password: hashedPassword,
       cpf: '12345678900',
-      name: 'Dr. João Coordenador Silva',
+      name: '#Dr. João Coordenador Silva',
       phone: '11987654321',
-    },
-  });
-
-  // 2. Criar instituição (temporariamente sem coordenador)
-  console.log('🏛️  Criando instituição...');
-  const institution = await prisma.institution.create({
-    data: {
-      cnpj: '12345678000190',
-      name: 'Universidade Federal de Teste',
-      type: InstitutionType.ACADEMICA,
-      email: 'contato@uft.edu.br',
-      phone: '1133334444',
-      website: 'https://www.uft.edu.br',
-      address: 'Rua das Flores, 123',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01234567',
-      country: 'Brasil',
-      description: 'Instituição de ensino superior focada em pesquisa científica',
-      foundedAt: new Date('1960-01-01'),
-      coordinator: {
+      role: UserRole.COORDENADOR_PROJETO,
+      researcher: {
         create: {
-          userId: coordUser.id,
           role: UserRole.COORDENADOR_PROJETO,
-          academicTitle: 'Doutor em Ciências da Saúde',
-          latesId: '1234567890123456',
+          academicTitle: '#Doutor em Ciências da Saúde',
+          lattesNumber: '1234567890123456',
           orcidId: '0000-0002-1234-5678',
-          specialization: 'Epidemiologia, Saúde Pública',
-          primaryInstitutionId: undefined as any, // Será atualizado abaixo
+          specialization: '#Epidemiologia, Saúde Pública',
+          primaryInstitutionId: institution.id,
         },
       },
     },
     include: {
-      coordinator: true,
+      researcher: true,
     },
   });
 
-  // 3. Atualizar researcher com primaryInstitutionId
-  const researcher = await prisma.researcher.update({
-    where: { id: institution.coordinatorId },
-    data: {
-      primaryInstitutionId: institution.id,
-    },
-  });
-
-  console.log(`✅ Coordenador criado: ${coordUser.email}`);
-  console.log(`✅ Instituição criada: ${institution.name}`);
-  console.log(`✅ Researcher ID: ${researcher.id}`);
-
-  // 4. Criar mais usuários (pesquisadores)
-  console.log('👥 Criando pesquisadores adicionais...');
-  
-  const pesquisador1 = await prisma.user.create({
+  const pesquisador1User = await prisma.user.create({
     data: {
       email: 'pesquisador1@teste.com',
       password: hashedPassword,
       cpf: '98765432100',
-      name: 'Dra. Maria Pesquisadora',
+      name: '#Dra. Maria Pesquisadora',
       phone: '11987654322',
+      role: UserRole.PESQUISADOR,
       researcher: {
         create: {
           role: UserRole.PESQUISADOR,
           primaryInstitutionId: institution.id,
-          academicTitle: 'Mestre em Saúde Pública',
-          latesId: '9876543210987654',
+          academicTitle: '#Mestre em Saúde Pública',
+          lattesNumber: '9876543210987654',
           orcidId: '0000-0001-9876-5432',
-          specialization: 'Pesquisa Clínica',
+          specialization: '#Pesquisa Clínica',
         },
       },
     },
+    include: {
+      researcher: true,
+    },
   });
 
-  const pesquisador2 = await prisma.user.create({
+  const pesquisador2User = await prisma.user.create({
     data: {
       email: 'pesquisador2@teste.com',
       password: hashedPassword,
       cpf: '11122233344',
-      name: 'Prof. Carlos Orientador',
+      name: '#Prof. Carlos Orientador',
       phone: '11987654323',
+      role: UserRole.ORIENTADOR,
       researcher: {
         create: {
           role: UserRole.ORIENTADOR,
           primaryInstitutionId: institution.id,
-          academicTitle: 'Doutor em Medicina',
-          latesId: '1112223334445556',
+          academicTitle: '#Doutor em Medicina',
+          lattesNumber: '1112223334445556',
           orcidId: '0000-0003-1111-2222',
-          specialization: 'Medicina Preventiva',
+          specialization: '#Medicina Preventiva',
         },
       },
     },
-  });
-
-  console.log(`✅ ${pesquisador1.email} criado`);
-  console.log(`✅ ${pesquisador2.email} criado`);
-
-  // 5. Criar segunda instituição
-  console.log('🏛️  Criando segunda instituição...');
-  const institution2 = await prisma.institution.create({
-    data: {
-      cnpj: '98765432000111',
-      name: 'Hospital Universitário de Pesquisa',
-      type: InstitutionType.HOSPITAL,
-      coordinatorId: researcher.id,
-      email: 'contato@hup.org.br',
-      phone: '1144445555',
-      city: 'Rio de Janeiro',
-      state: 'RJ',
-      zipCode: '20000000',
-      country: 'Brasil',
-      description: 'Hospital voltado para pesquisa clínica',
+    include: {
+      researcher: true,
     },
   });
 
-  console.log(`✅ Segunda instituição criada: ${institution2.name}`);
+  // Atualizar instituição com coordenador
+  await prisma.institution.update({
+    where: { id: institution.id },
+    data: { coordinatorId: coordUser.researcher!.id },
+  });
 
-  // 6. Criar questões de exemplo
-  console.log('❓ Criando questões de exemplo...');
+  console.log(`✅ Coordenador: ${coordUser.email}`);
+  console.log(`✅ Pesquisador 1: ${pesquisador1User.email}`);
+  console.log(`✅ Pesquisador 2: ${pesquisador2User.email}`);
 
-  const questions = [
-    {
-      text: 'Qual é a sua idade?',
+  // 3. Criar Segunda Instituição
+  const institution2 = await prisma.institution.create({
+    data: {
+      cnpj: '98765432000111',
+      name: '#Hospital Universitário de Pesquisa',
+      acronym: '#HUP',
+      type: InstitutionType.HOSPITAL,
+      coordinatorId: coordUser.researcher!.id,
+      email: 'contato@hup.org.br',
+      phone: '1144445555',
+      city: '#Rio de Janeiro',
+      state: 'RJ',
+      zipCode: '20000000',
+      country: 'Brasil',
+      description: '#Hospital voltado para pesquisa clínica',
+    },
+  });
+
+  console.log(`✅ Segunda instituição: ${institution2.name}`);
+
+  // 4. Criar Questões
+  console.log('❓ Criando questões...');
+  
+  const question1 = await prisma.question.create({
+    data: {
+      text: '#Qual é a sua idade?',
       type: QuestionType.NUMERICA,
       category: QuestionCategory.DEMOGRAFICA,
       scope: QuestionScope.NACIONAL,
       isRequired: true,
       minValue: 0,
       maxValue: 120,
-      helpText: 'Informe sua idade em anos completos',
-      objective: 'Coletar dados demográficos dos participantes',
-      targetAudience: 'Todos os participantes',
+      helpText: '#Informe sua idade em anos completos',
+      objective: '#Coletar dados demográficos dos participantes',
+      targetAudience: '#Todos os participantes',
       origin: 'MANUAL',
+      creatorId: coordUser.researcher!.id,
+      version: 1,
     },
-    {
-      text: 'Qual o seu nível de escolaridade?',
+  });
+
+  const question2 = await prisma.question.create({
+    data: {
+      text: '#Qual o seu nível de escolaridade?',
       type: QuestionType.MULTIPLA_ESCOLHA,
       category: QuestionCategory.DEMOGRAFICA,
       scope: QuestionScope.NACIONAL,
       isRequired: true,
       options: {
         choices: [
-          'Ensino Fundamental Incompleto',
-          'Ensino Fundamental Completo',
-          'Ensino Médio Incompleto',
-          'Ensino Médio Completo',
-          'Ensino Superior Incompleto',
-          'Ensino Superior Completo',
-          'Pós-graduação',
+          '#Ensino Fundamental Incompleto',
+          '#Ensino Fundamental Completo',
+          '#Ensino Médio Incompleto',
+          '#Ensino Médio Completo',
+          '#Ensino Superior Incompleto',
+          '#Ensino Superior Completo',
+          '#Pós-graduação',
         ],
       },
-      objective: 'Identificar perfil educacional',
+      objective: '#Identificar perfil educacional',
       origin: 'MANUAL',
+      creatorId: coordUser.researcher!.id,
+      version: 1,
     },
-    {
-      text: 'Como você avalia sua qualidade de vida?',
+  });
+
+  const question3 = await prisma.question.create({
+    data: {
+      text: '#Como você avalia sua qualidade de vida?',
       type: QuestionType.ESCALA_LIKERT,
       category: QuestionCategory.PSICOLOGICA,
       scope: QuestionScope.INTERNACIONAL,
@@ -201,59 +216,38 @@ async function main() {
         '4': 'Boa',
         '5': 'Muito boa',
       },
-      objective: 'Avaliar percepção de qualidade de vida',
+      objective: '#Avaliar percepção de qualidade de vida',
       origin: 'MANUAL',
+      creatorId: coordUser.researcher!.id,
+      version: 1,
     },
-    {
-      text: 'Você tem alguma doença crônica?',
+  });
+
+  const question4 = await prisma.question.create({
+    data: {
+      text: '#Você tem alguma doença crônica?',
       type: QuestionType.SIM_NAO,
       category: QuestionCategory.CLINICA,
       scope: QuestionScope.NACIONAL,
       isRequired: true,
-      helpText: 'Considere diabetes, hipertensão, asma, etc.',
-      objective: 'Identificar condições de saúde pré-existentes',
+      helpText: '#Considere diabetes, hipertensão, asma, etc.',
+      objective: '#Identificar condições de saúde pré-existentes',
       origin: 'MANUAL',
+      creatorId: coordUser.researcher!.id,
+      version: 1,
     },
-    {
-      text: 'Descreva seus principais sintomas',
-      type: QuestionType.ABERTA,
-      category: QuestionCategory.CLINICA,
-      scope: QuestionScope.LOCAL,
-      isRequired: false,
-      helpText: 'Descreva em detalhes os sintomas que você apresenta',
-      objective: 'Coletar relatos detalhados de sintomas',
-      origin: 'MANUAL',
-    },
-    {
-      text: 'Data da última consulta médica',
-      type: QuestionType.DATA,
-      category: QuestionCategory.CLINICA,
-      scope: QuestionScope.LOCAL,
-      isRequired: false,
-      objective: 'Registrar histórico de consultas',
-      origin: 'MANUAL',
-    },
-  ];
+  });
 
-  for (const questionData of questions) {
-    await prisma.question.create({
-      data: {
-        ...questionData,
-        creatorId: researcher.id,
-      },
-    });
-  }
+  console.log(`✅ 4 questões criadas`);
 
-  console.log(`✅ ${questions.length} questões criadas`);
-
-  // 8. Criar Grupo de Pesquisa
+  // 5. Criar Grupo de Pesquisa
   console.log('🔬 Criando grupo de pesquisa...');
   const researchGroup = await prisma.researchGroup.create({
     data: {
       name: '#Grupo de Estudos em Saúde Pública',
       description: '#Grupo dedicado à pesquisa em saúde coletiva e epidemiologia',
       institutionId: institution.id,
-      leaderId: researcher.id,
+      leaderId: coordUser.researcher!.id,
       cnpqCertified: true,
       certificationDate: new Date('2020-01-15'),
       researchLines: ['#Epidemiologia', '#Saúde Pública', '#Doenças Crônicas'],
@@ -261,12 +255,17 @@ async function main() {
       members: {
         create: [
           {
-            userId: pesquisador1.id,
+            researcherId: coordUser.researcher!.id,
+            role: UserRole.COORDENADOR_GRUPO,
+            joinedAt: new Date('2020-01-15'),
+          },
+          {
+            researcherId: pesquisador1User.researcher!.id,
             role: UserRole.PESQUISADOR,
             joinedAt: new Date('2020-02-01'),
           },
           {
-            userId: pesquisador2.id,
+            researcherId: pesquisador2User.researcher!.id,
             role: UserRole.ORIENTADOR,
             joinedAt: new Date('2020-03-01'),
           },
@@ -275,16 +274,15 @@ async function main() {
     },
   });
 
-  console.log(`✅ Grupo de pesquisa criado: ${researchGroup.name}`);
+  console.log(`✅ Grupo de pesquisa: ${researchGroup.name}`);
 
-  // 9. Criar Projeto
+  // 6. Criar Projeto
   console.log('📋 Criando projeto...');
   const project = await prisma.project.create({
     data: {
       title: '#Estudo sobre Prevalência de Doenças Crônicas',
       description: '#Projeto de pesquisa para avaliar a prevalência de doenças crônicas na população brasileira',
       researchGroupId: researchGroup.id,
-      coordinatorId: researcher.id,
       institutionId: institution.id,
       status: ProjectStatus.EM_ANDAMENTO,
       startDate: new Date('2024-01-01'),
@@ -297,15 +295,24 @@ async function main() {
       budget: 150000.50,
       fundingSource: '#CNPq, FAPESP',
       keywords: ['#doenças crônicas', '#epidemiologia', '#saúde pública'],
+      coordinators: {
+        create: [
+          {
+            researcherId: coordUser.researcher!.id,
+            role: UserRole.COORDENADOR_PROJETO,
+            assignedAt: new Date('2024-01-01'),
+          },
+        ],
+      },
       members: {
         create: [
           {
-            userId: pesquisador1.id,
+            researcherId: pesquisador1User.researcher!.id,
             role: UserRole.PESQUISADOR,
             joinedAt: new Date('2024-01-15'),
           },
           {
-            userId: pesquisador2.id,
+            researcherId: pesquisador2User.researcher!.id,
             role: UserRole.ORIENTADOR,
             joinedAt: new Date('2024-01-15'),
           },
@@ -314,16 +321,16 @@ async function main() {
     },
   });
 
-  console.log(`✅ Projeto criado: ${project.title}`);
+  console.log(`✅ Projeto: ${project.title}`);
 
-  // 10. Criar Questionário
+  // 7. Criar Questionário
   console.log('📝 Criando questionário...');
   const questionnaire = await prisma.questionnaire.create({
     data: {
       title: '#Questionário de Saúde Geral',
       description: '#Avaliação completa de condições de saúde e hábitos de vida',
       projectId: project.id,
-      creatorId: researcher.id,
+      creatorId: coordUser.researcher!.id,
       version: 1,
       isActive: true,
       estimatedDuration: 15,
@@ -332,47 +339,74 @@ async function main() {
       thankYouMessage: '#Obrigado por participar da pesquisa',
       allowAnonymous: true,
       questions: {
-        create: questions.slice(0, 4).map((q, index) => ({
-          questionId: questions.indexOf(q) + 1,
-          order: index + 1,
-          required: q.isRequired,
-        })),
+        create: [
+          {
+            questionId: question1.id,
+            order: 1,
+            required: true,
+          },
+          {
+            questionId: question2.id,
+            order: 2,
+            required: true,
+          },
+          {
+            questionId: question3.id,
+            order: 3,
+            required: true,
+          },
+          {
+            questionId: question4.id,
+            order: 4,
+            required: true,
+          },
+        ],
       },
     },
   });
 
-  console.log(`✅ Questionário criado: ${questionnaire.title}`);
+  console.log(`✅ Questionário: ${questionnaire.title}`);
 
-  // 11. Criar Pesquisa de Campo
+  // 8. Criar Pesquisa de Campo
   console.log('🗺️  Criando pesquisa de campo...');
   const fieldSurvey = await prisma.fieldSurvey.create({
     data: {
-      name: '#Coleta de Dados - Região Sul',
+      title: '#Coleta de Dados - Região Sul',
       description: '#Pesquisa de campo para coleta de dados em hospitais da região sul',
       projectId: project.id,
       questionnaireId: questionnaire.id,
-      coordinatorId: researcher.id,
+      researchGroupId: researchGroup.id,
       startDate: new Date('2024-06-01'),
       endDate: new Date('2024-08-31'),
       location: '#Porto Alegre, Curitiba, Florianópolis',
       targetPopulation: '#Pacientes com doenças crônicas',
-      sampleSize: 500,
-      collectedSamples: 287,
-      status: ProjectStatus.EM_ANDAMENTO,
-      budget: 45000.00,
-      notes: '#Realizar coleta em 3 capitais, Equipe de 5 pesquisadores',
+      participants: {
+        create: [
+          {
+            researcherId: coordUser.researcher!.id,
+            role: UserRole.COORDENADOR_PROJETO,
+            joinedAt: new Date('2024-06-01'),
+          },
+          {
+            researcherId: pesquisador1User.researcher!.id,
+            role: UserRole.PESQUISADOR,
+            joinedAt: new Date('2024-06-01'),
+          },
+        ],
+      },
     },
   });
 
-  console.log(`✅ Pesquisa de campo criada: ${fieldSurvey.name}`);
+  console.log(`✅ Pesquisa de campo: ${fieldSurvey.title}`);
 
-  // 12. Criar Aprovações
+  // 9. Criar Aprovações
   console.log('✅ Criando aprovações...');
   
-  const approval1 = await prisma.approval.create({
+  const approval1 = await prisma.approvalRequest.create({
     data: {
       projectId: project.id,
-      approverId: researcher.id,
+      requesterId: coordUser.researcher!.id,
+      approverId: pesquisador2User.researcher!.id,
       status: ApprovalStatus.APROVADO,
       type: 'COMITE_ETICA',
       submittedAt: new Date('2023-10-01'),
@@ -383,10 +417,11 @@ async function main() {
     },
   });
 
-  const approval2 = await prisma.approval.create({
+  const approval2 = await prisma.approvalRequest.create({
     data: {
       projectId: project.id,
-      approverId: pesquisador2.id,
+      requesterId: pesquisador1User.researcher!.id,
+      approverId: coordUser.researcher!.id,
       status: ApprovalStatus.PENDENTE,
       type: 'COORDENADOR',
       submittedAt: new Date('2024-11-01'),
@@ -394,128 +429,107 @@ async function main() {
     },
   });
 
-  console.log(`✅ ${2} aprovações criadas`);
+  console.log(`✅ 2 aprovações criadas`);
 
-  // 13. Criar Notificações
+  // 10. Criar Notificações
   console.log('🔔 Criando notificações...');
 
-  const notifications = [
-    {
-      userId: coordUser.id,
+  await prisma.notification.create({
+    data: {
+      type: 'NOVO_PROJETO',
       title: '#Novo projeto cadastrado',
       message: '#O projeto "Estudo sobre Prevalência de Doenças Crônicas" foi cadastrado e aguarda sua revisão',
-      type: NotificationType.NOVO_PROJETO,
-      priority: NotificationPriority.ALTA,
-      isRead: false,
-      relatedProjectId: project.id,
+      receiverId: coordUser.researcher!.id,
+      senderId: pesquisador1User.researcher!.id,
+      read: false,
+      relatedId: project.id,
+      relatedType: 'PROJECT',
     },
-    {
-      userId: pesquisador1.id,
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'NOVO_MEMBRO',
       title: '#Você foi adicionado a um projeto',
       message: '#Você foi adicionado como membro do projeto "Estudo sobre Prevalência de Doenças Crônicas"',
-      type: NotificationType.NOVO_MEMBRO,
-      priority: NotificationPriority.MEDIA,
-      isRead: false,
-      relatedProjectId: project.id,
+      receiverId: pesquisador1User.researcher!.id,
+      senderId: coordUser.researcher!.id,
+      read: false,
+      relatedId: project.id,
+      relatedType: 'PROJECT',
     },
-    {
-      userId: pesquisador2.id,
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'APROVACAO_PENDENTE',
       title: '#Nova aprovação pendente',
       message: '#Há uma aprovação aguardando sua revisão no projeto "Estudo sobre Prevalência de Doenças Crônicas"',
-      type: NotificationType.APROVACAO_PENDENTE,
-      priority: NotificationPriority.ALTA,
-      isRead: false,
-      relatedProjectId: project.id,
+      receiverId: coordUser.researcher!.id,
+      senderId: pesquisador1User.researcher!.id,
+      read: false,
+      relatedId: approval2.id,
+      relatedType: 'APPROVAL',
     },
-    {
-      userId: coordUser.id,
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'PRAZO_PROXIMO',
       title: '#Prazo da pesquisa de campo se aproxima',
       message: '#A pesquisa de campo "Coleta de Dados - Região Sul" encerra em 30 dias',
-      type: NotificationType.PRAZO_PROXIMO,
-      priority: NotificationPriority.MEDIA,
-      isRead: true,
-      relatedProjectId: project.id,
+      receiverId: coordUser.researcher!.id,
+      read: true,
+      relatedId: fieldSurvey.id,
+      relatedType: 'FIELD_SURVEY',
+      readAt: new Date(),
     },
-  ];
+  });
 
-  for (const notificationData of notifications) {
-    await prisma.notification.create({
-      data: notificationData,
-    });
-  }
+  console.log(`✅ 4 notificações criadas`);
 
-  console.log(`✅ ${notifications.length} notificações criadas`);
+  // 11. Criar dados adicionais marcados com #
+  console.log('📦 Criando dados adicionais...');
 
-  // 14. Criar mais dados marcados com # para fácil deleção
-  console.log('📦 Criando dados adicionais marcados com #...');
-
-  // Usuários adicionais
-  const testUsers = [
-    {
+  // Usuários extras
+  const testUser1 = await prisma.user.create({
+    data: {
       email: '#teste1@exemplo.com',
       name: '#Usuário Teste 1',
       cpf: '11111111111',
       phone: '11911111111',
+      password: hashedPassword,
+      role: UserRole.ALUNO,
+      researcher: {
+        create: {
+          role: UserRole.ALUNO,
+          primaryInstitutionId: institution.id,
+          academicTitle: '#Graduando',
+        },
+      },
     },
-    {
+  });
+
+  const testUser2 = await prisma.user.create({
+    data: {
       email: '#teste2@exemplo.com',
       name: '#Usuário Teste 2',
       cpf: '22222222222',
       phone: '11922222222',
-    },
-    {
-      email: '#teste3@exemplo.com',
-      name: '#Usuário Teste 3',
-      cpf: '33333333333',
-      phone: '11933333333',
-    },
-  ];
-
-  for (const userData of testUsers) {
-    await prisma.user.create({
-      data: {
-        ...userData,
-        password: hashedPassword,
-        role: UserRole.PESQUISADOR,
+      password: hashedPassword,
+      role: UserRole.VOLUNTARIO,
+      researcher: {
+        create: {
+          role: UserRole.VOLUNTARIO,
+          primaryInstitutionId: institution.id,
+        },
       },
-    });
-  }
-
-  // Instituições adicionais
-  const testInstitutions = [
-    {
-      cnpj: '#11111111000111',
-      name: '#Instituto de Pesquisa Teste A',
-      acronym: '#IPTA',
-      type: InstitutionType.INSTITUTO_PESQUISA,
-      coordinatorId: researcher.id,
-      email: '#contato@ipta.org',
-      city: '#São Paulo',
-      state: 'SP',
-      country: 'Brasil',
     },
-    {
-      cnpj: '#22222222000122',
-      name: '#Hospital Teste B',
-      acronym: '#HTB',
-      type: InstitutionType.HOSPITAL,
-      coordinatorId: researcher.id,
-      email: '#contato@htb.org',
-      city: '#Campinas',
-      state: 'SP',
-      country: 'Brasil',
-    },
-  ];
+  });
 
-  for (const instData of testInstitutions) {
-    await prisma.institution.create({
-      data: instData,
-    });
-  }
-
-  // Questões adicionais
-  const additionalQuestions = [
-    {
+  // Questões extras
+  await prisma.question.create({
+    data: {
       text: '#Qual é o seu peso em kg?',
       type: QuestionType.NUMERICA,
       category: QuestionCategory.CLINICA,
@@ -523,38 +537,28 @@ async function main() {
       isRequired: true,
       minValue: 30,
       maxValue: 250,
-      creatorId: researcher.id,
+      creatorId: coordUser.researcher!.id,
       origin: 'MANUAL',
+      version: 1,
     },
-    {
-      text: '#Você pratica atividade física regularmente?',
-      type: QuestionType.SIM_NAO,
-      category: QuestionCategory.HABITOS,
-      scope: QuestionScope.NACIONAL,
-      isRequired: true,
-      creatorId: researcher.id,
-      origin: 'MANUAL',
-    },
-    {
+  });
+
+  await prisma.question.create({
+    data: {
       text: '#Descreva sua rotina alimentar',
       type: QuestionType.ABERTA,
-      category: QuestionCategory.HABITOS,
+      category: QuestionCategory.CLINICA,
       scope: QuestionScope.LOCAL,
       isRequired: false,
-      creatorId: researcher.id,
+      creatorId: coordUser.researcher!.id,
       origin: 'MANUAL',
+      version: 1,
     },
-  ];
+  });
 
-  for (const questionData of additionalQuestions) {
-    await prisma.question.create({
-      data: questionData,
-    });
-  }
+  console.log(`✅ Dados adicionais criados`);
 
-  console.log(`✅ Dados adicionais criados (3 usuários, 2 instituições, 3 questões)`);
-
-  // 15. Resumo Final
+  // 12. Resumo Final
   const counts = {
     users: await prisma.user.count(),
     researchers: await prisma.researcher.count(),
@@ -564,7 +568,7 @@ async function main() {
     projects: await prisma.project.count(),
     questionnaires: await prisma.questionnaire.count(),
     fieldSurveys: await prisma.fieldSurvey.count(),
-    approvals: await prisma.approval.count(),
+    approvals: await prisma.approvalRequest.count(),
     notifications: await prisma.notification.count(),
   };
 

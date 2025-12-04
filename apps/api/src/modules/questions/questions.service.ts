@@ -220,14 +220,26 @@ export class QuestionsService {
     // Criar nova versão da questão
     const newVersion = await this.prisma.question.create({
       data: {
-        ...updateQuestionDto,
+        text: updateQuestionDto.text !== undefined ? updateQuestionDto.text : existingQuestion.text,
+        type: updateQuestionDto.type !== undefined ? updateQuestionDto.type : existingQuestion.type,
+        category: updateQuestionDto.category !== undefined ? updateQuestionDto.category : existingQuestion.category,
+        scope: updateQuestionDto.scope !== undefined ? updateQuestionDto.scope : existingQuestion.scope,
+        isRequired: updateQuestionDto.isRequired !== undefined ? updateQuestionDto.isRequired : existingQuestion.isRequired,
+        minValue: updateQuestionDto.minValue !== undefined ? updateQuestionDto.minValue : existingQuestion.minValue,
+        maxValue: updateQuestionDto.maxValue !== undefined ? updateQuestionDto.maxValue : existingQuestion.maxValue,
+        validationRegex: updateQuestionDto.validationRegex !== undefined ? updateQuestionDto.validationRegex : existingQuestion.validationRegex,
+        helpText: updateQuestionDto.helpText !== undefined ? updateQuestionDto.helpText : existingQuestion.helpText,
+        options: updateQuestionDto.options !== undefined ? updateQuestionDto.options : existingQuestion.options,
+        likertMin: updateQuestionDto.likertMin !== undefined ? updateQuestionDto.likertMin : existingQuestion.likertMin,
+        likertMax: updateQuestionDto.likertMax !== undefined ? updateQuestionDto.likertMax : existingQuestion.likertMax,
+        likertLabels: updateQuestionDto.likertLabels !== undefined ? updateQuestionDto.likertLabels : existingQuestion.likertLabels,
+        objective: updateQuestionDto.objective !== undefined ? updateQuestionDto.objective : existingQuestion.objective,
+        targetAudience: updateQuestionDto.targetAudience !== undefined ? updateQuestionDto.targetAudience : existingQuestion.targetAudience,
         creatorId: userId,
         parentId: existingQuestion.parentId || existingQuestion.id,
         version: existingQuestion.version + 1,
         origin: existingQuestion.origin,
-        researchGroupId: updateQuestionDto.researchGroupId || existingQuestion.researchGroupId,
-        options: updateQuestionDto.options ? updateQuestionDto.options : existingQuestion.options,
-        likertLabels: updateQuestionDto.likertLabels ? updateQuestionDto.likertLabels : existingQuestion.likertLabels,
+        researchGroupId: updateQuestionDto.researchGroupId !== undefined ? updateQuestionDto.researchGroupId : existingQuestion.researchGroupId,
       },
       include: {
         creator: {

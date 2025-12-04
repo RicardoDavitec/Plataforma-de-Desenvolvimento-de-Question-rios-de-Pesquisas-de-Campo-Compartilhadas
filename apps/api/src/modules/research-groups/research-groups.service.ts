@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateResearchGroupDto } from './dto/create-research-group.dto';
 import { UpdateResearchGroupDto } from './dto/update-research-group.dto';
 import { AddGroupMemberDto } from './dto/add-group-member.dto';
