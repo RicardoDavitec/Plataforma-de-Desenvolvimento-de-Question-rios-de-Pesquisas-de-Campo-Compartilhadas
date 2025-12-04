@@ -1,5 +1,5 @@
 // Prisma Schema for ResearchQuest
-// Database: PostgreSQL (pgVector extension optional - to be added later)
+// Database: PostgreSQL (pgVector extension to be installed on server)
 
 generator client {
   provider = "prisma-client-js"
@@ -109,10 +109,30 @@ model User {
   // Profile information
   researcher Researcher?
 
+  // Refresh tokens
+  refreshTokens RefreshToken[]
+
   // Audit logs
   auditLogs AuditLog[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+  
+  // Device information (optional)
+  deviceInfo String?
+  ipAddress  String?
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model Researcher {
@@ -452,6 +472,7 @@ model Question {
   // Question metadata
   objective   String?
   targetAudience String?
+  origin      String?  @default("MANUAL") // Origem: MANUAL, AI_CLAUDE, AI_DEEPSEEK, AI_GPT, GOOGLE_FORMS, IMPORTED_EXCEL, IMPORTED_CSV, etc.
   
   // Creator
   creatorId String
@@ -467,9 +488,9 @@ model Question {
   parent      Question?  @relation("QuestionVersions", fields: [parentId], references: [id])
   versions    Question[] @relation("QuestionVersions")
 
-  // Similarity search (pgVector) - TO BE IMPLEMENTED
-  // embedding   Unsupported("vector(1536)")? // OpenAI/Cohere embedding
-  // Note: Will be added after pgVector extension is installed on PostgreSQL server
+  // Similarity search (pgVector) - TO BE ENABLED
+  // embedding   Unsupported("vector(1536)")? // OpenAI embedding (requires pgVector extension)
+  // Note: Requires pgVector extension installed on PostgreSQL server
 
   // Questionnaires using this question
   questionnaireQuestions QuestionnaireQuestion[]
