@@ -360,6 +360,89 @@ Content-Type: application/json
 }
 
 ### ============================================
+### PROJETOS (PROJECTS)
+### ============================================
+
+### 36. Criar Projeto
+POST {{baseUrl}}/projects
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Pesquisa sobre Qualidade de Vida em Comunidades Rurais",
+  "description": "Este projeto visa investigar os fatores que influenciam a qualidade de vida nas comunidades rurais da região, focando em aspectos socioeconômicos, acesso a serviços de saúde e bem-estar geral.",
+  "status": "EM_ANDAMENTO",
+  "cepProtocol": "CAAE: 12345678.9.0000.5555",
+  "researchArea": "Saúde Pública",
+  "keywords": ["qualidade de vida", "saúde pública", "zona rural", "determinantes sociais"],
+  "fundingAgency": "CNPq - Conselho Nacional de Desenvolvimento Científico e Tecnológico",
+  "fundingAmount": 50000.00,
+  "startDate": "2025-01-15",
+  "endDate": "2026-12-31",
+  "methodology": "Estudo observacional transversal com coleta de dados primários através de questionários estruturados e entrevistas semiestruturadas. A amostra será composta por 500 participantes de 10 comunidades rurais.",
+  "objectives": "Objetivo Geral: Avaliar a qualidade de vida nas comunidades rurais.\n\nObjetivos Específicos:\n1) Identificar os principais determinantes sociais da saúde\n2) Analisar o acesso aos serviços de saúde\n3) Avaliar indicadores de bem-estar subjetivo\n4) Propor intervenções baseadas em evidências",
+  "schedule": "Fase 1 (Jan-Mar 2025): Revisão bibliográfica e preparação\nFase 2 (Abr-Jun 2025): Coleta de dados piloto\nFase 3 (Jul-Set 2025): Coleta de dados principal\nFase 4 (Out-Dez 2025): Análise de dados\nFase 5 (Jan-Jun 2026): Redação de artigos e relatório final",
+  "institutionId": "ID_DA_INSTITUICAO",
+  "coordinatorIds": ["ID_DO_PESQUISADOR_COORDENADOR"]
+}
+
+### 37. Listar Projetos
+GET {{baseUrl}}/projects
+Authorization: Bearer {{accessToken}}
+
+### 38. Listar Projetos com Filtros
+GET {{baseUrl}}/projects?status=EM_ANDAMENTO&search=saúde
+Authorization: Bearer {{accessToken}}
+
+### 39. Buscar Projeto por ID
+GET {{baseUrl}}/projects/ID_DO_PROJETO
+Authorization: Bearer {{accessToken}}
+
+### 40. Atualizar Projeto
+PATCH {{baseUrl}}/projects/ID_DO_PROJETO
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "CONCLUIDO",
+  "description": "Projeto concluído com sucesso. Resultados publicados em revista científica."
+}
+
+### 41. Adicionar Coordenador ao Projeto
+POST {{baseUrl}}/projects/ID_DO_PROJETO/coordinators/ID_DO_PESQUISADOR
+Authorization: Bearer {{accessToken}}
+
+### 42. Remover Coordenador do Projeto
+DELETE {{baseUrl}}/projects/ID_DO_PROJETO/coordinators/ID_DO_PESQUISADOR
+Authorization: Bearer {{accessToken}}
+
+### 43. Adicionar Membro ao Projeto
+POST {{baseUrl}}/projects/ID_DO_PROJETO/members
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "researcherId": "ID_DO_PESQUISADOR",
+  "role": "PESQUISADOR"
+}
+
+### 44. Listar Membros do Projeto
+GET {{baseUrl}}/projects/ID_DO_PROJETO/members
+Authorization: Bearer {{accessToken}}
+
+### 45. Remover Membro do Projeto
+DELETE {{baseUrl}}/projects/ID_DO_PROJETO/members/ID_DO_PESQUISADOR
+Authorization: Bearer {{accessToken}}
+
+### 46. Obter Estatísticas do Projeto
+GET {{baseUrl}}/projects/ID_DO_PROJETO/statistics
+Authorization: Bearer {{accessToken}}
+
+### 47. Deletar Projeto
+DELETE {{baseUrl}}/projects/ID_DO_PROJETO
+Authorization: Bearer {{accessToken}}
+
+### ============================================
 ### NOTAS
 ### ============================================
 # 1. Substitua {{accessToken}} pelo token JWT retornado no login
