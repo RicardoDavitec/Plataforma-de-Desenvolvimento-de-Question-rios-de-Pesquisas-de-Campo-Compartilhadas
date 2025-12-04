@@ -10,10 +10,17 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Response } from 'express';
 import { UserRole } from '@prisma/client';
 import { QuestionsService } from './questions.service';
+import { FileParserService } from './file-parser.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { ImportQuestionsDto } from './dto/import-questions.dto';
@@ -27,7 +34,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class QuestionsController {
-  constructor(private readonly questionsService: QuestionsService) {}
+  constructor(
+    private readonly questionsService: QuestionsService,
+    private readonly fileParserService: FileParserService,
+  ) {}
 
   @Post()
   @Roles(UserRole.PESQUISADOR, UserRole.COORDENADOR_PROJETO, UserRole.COORDENADOR_GRUPO, UserRole.DOCENTE)
@@ -141,5 +151,169 @@ export class QuestionsController {
     @CurrentUser('userId') userId: string,
   ) {
     return this.questionsService.remove(id, userId);
+  }
+
+  // ===== ENDPOINTS DE UPLOAD =====
+
+  @Post('upload/excel')
+  @Roles(UserRole.PESQUISADOR, UserRole.COORDENADOR_PROJETO, UserRole.COORDENADOR_GRUPO, UserRole.DOCENTE, UserRole.ORIENTADOR)
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ 
+    summary: 'Upload de arquivo Excel com questões',
+    description: 'Faz upload de arquivo .xlsx ou .xls e importa as questões automaticamente' 
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+        defaultOrigin: {
+          type: 'string',
+          description: 'Origem padrão para todas as questões (opcional)',
+        },
+        researchGroupId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'ID do grupo de pesquisa (opcional)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Questões importadas com sucesso' })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido ou erro no formato' })
+  async uploadExcel(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('userId') userId: string,
+    @Body('defaultOrigin') defaultOrigin?: string,
+    @Body('researchGroupId') researchGroupId?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo foi enviado');
+    }
+
+    if (!file.originalname.match(/\.(xlsx|xls)$/)) {
+      throw new BadRequestException('Apenas arquivos Excel (.xlsx, .xls) são permitidos');
+    }
+
+    // Parsear Excel
+    const questions = await this.fileParserService.parseExcel(file.buffer);
+
+    // Importar questões
+    const result = await this.questionsService.importQuestions(userId, {
+      questions,
+      defaultOrigin: defaultOrigin || 'EXCEL_IMPORT',
+      researchGroupId,
+    });
+
+    return {
+      message: 'Importação concluída',
+      fileName: file.originalname,
+      ...result,
+    };
+  }
+
+  @Post('upload/csv')
+  @Roles(UserRole.PESQUISADOR, UserRole.COORDENADOR_PROJETO, UserRole.COORDENADOR_GRUPO, UserRole.DOCENTE, UserRole.ORIENTADOR)
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ 
+    summary: 'Upload de arquivo CSV com questões',
+    description: 'Faz upload de arquivo .csv e importa as questões automaticamente' 
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+        defaultOrigin: {
+          type: 'string',
+          description: 'Origem padrão para todas as questões (opcional)',
+        },
+        researchGroupId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'ID do grupo de pesquisa (opcional)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Questões importadas com sucesso' })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido ou erro no formato' })
+  async uploadCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('userId') userId: string,
+    @Body('defaultOrigin') defaultOrigin?: string,
+    @Body('researchGroupId') researchGroupId?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo foi enviado');
+    }
+
+    if (!file.originalname.match(/\.csv$/)) {
+      throw new BadRequestException('Apenas arquivos CSV são permitidos');
+    }
+
+    // Parsear CSV
+    const questions = await this.fileParserService.parseCsv(file.buffer);
+
+    // Importar questões
+    const result = await this.questionsService.importQuestions(userId, {
+      questions,
+      defaultOrigin: defaultOrigin || 'CSV_IMPORT',
+      researchGroupId,
+    });
+
+    return {
+      message: 'Importação concluída',
+      fileName: file.originalname,
+      ...result,
+    };
+  }
+
+  // ===== ENDPOINTS DE TEMPLATES =====
+
+  @Get('templates/excel')
+  @ApiOperation({ 
+    summary: 'Download de template Excel',
+    description: 'Baixa um arquivo Excel de exemplo com o formato correto para importação' 
+  })
+  @ApiResponse({ status: 200, description: 'Template Excel gerado' })
+  downloadExcelTemplate(@Res() res: Response) {
+    const buffer = this.fileParserService.generateExcelTemplate();
+    
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="template_questoes.xlsx"',
+      'Content-Length': buffer.length,
+    });
+    
+    res.send(buffer);
+  }
+
+  @Get('templates/csv')
+  @ApiOperation({ 
+    summary: 'Download de template CSV',
+    description: 'Baixa um arquivo CSV de exemplo com o formato correto para importação' 
+  })
+  @ApiResponse({ status: 200, description: 'Template CSV gerado' })
+  downloadCsvTemplate(@Res() res: Response) {
+    const csv = this.fileParserService.generateCsvTemplate();
+    
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="template_questoes.csv"',
+      'Content-Length': csv.length,
+    });
+    
+    res.send(csv);
   }
 }

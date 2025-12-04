@@ -1,0 +1,373 @@
+### ResearchQuest API Tests
+### Configuração de variáveis
+@baseUrl = http://localhost:3000
+@accessToken = 
+
+### ============================================
+### AUTENTICAÇÃO
+### ============================================
+
+### 1. SignUp - Criar primeiro usuário (Coordenador)
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "coordenador@teste.com",
+  "password": "Senha@123",
+  "cpf": "123.456.789-00",
+  "name": "Dr. João Coordenador",
+  "phone": "(11) 98765-4321",
+  "role": "COORDENADOR_PROJETO",
+  "primaryInstitutionId": "CRIAR_INSTITUICAO_PRIMEIRO",
+  "academicTitle": "Doutor em Ciências da Saúde",
+  "lattesNumber": "1234567890123456",
+  "orcidId": "0000-0002-1234-5678",
+  "specialization": "Epidemiologia, Saúde Pública"
+}
+
+### 2. SignIn - Fazer login
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "email": "coordenador@teste.com",
+  "password": "Senha@123"
+}
+
+### 3. Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "SEU_REFRESH_TOKEN_AQUI"
+}
+
+### 4. Logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "SEU_REFRESH_TOKEN_AQUI"
+}
+
+### ============================================
+### INSTITUIÇÕES
+### ============================================
+
+### 5. Criar Instituição
+POST {{baseUrl}}/institutions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "cnpj": "12.345.678/0001-90",
+  "name": "Universidade Federal de Teste",
+  "type": "ACADEMICA",
+  "coordinatorId": "ID_DO_RESEARCHER_DO_USUARIO_LOGADO",
+  "email": "contato@uft.edu.br",
+  "phone": "(11) 3333-4444",
+  "website": "https://www.uft.edu.br",
+  "address": "Rua das Flores, 123",
+  "city": "São Paulo",
+  "state": "SP",
+  "zipCode": "01234-567",
+  "country": "Brasil",
+  "description": "Instituição de ensino superior focada em pesquisa científica",
+  "foundedAt": "1960-01-01T00:00:00.000Z"
+}
+
+### 6. Listar Instituições
+GET {{baseUrl}}/institutions
+Authorization: Bearer {{accessToken}}
+
+### 7. Listar Instituições com Filtros
+GET {{baseUrl}}/institutions?type=ACADEMICA&state=SP&search=Federal
+Authorization: Bearer {{accessToken}}
+
+### 8. Buscar Instituição por ID
+GET {{baseUrl}}/institutions/SEU_INSTITUTION_ID
+Authorization: Bearer {{accessToken}}
+
+### 9. Listar Pesquisadores da Instituição (Primários)
+GET {{baseUrl}}/institutions/SEU_INSTITUTION_ID/researchers?primary=true
+Authorization: Bearer {{accessToken}}
+
+### 10. Obter Estatísticas da Instituição
+GET {{baseUrl}}/institutions/SEU_INSTITUTION_ID/statistics
+Authorization: Bearer {{accessToken}}
+
+### 11. Atualizar Instituição
+PATCH {{baseUrl}}/institutions/SEU_INSTITUTION_ID
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "(11) 3333-5555",
+  "description": "Instituição atualizada com nova descrição"
+}
+
+### 12. Deletar Instituição
+DELETE {{baseUrl}}/institutions/SEU_INSTITUTION_ID
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### QUESTÕES
+### ============================================
+
+### 13. Criar Questão
+POST {{baseUrl}}/questions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "text": "Qual é a sua idade?",
+  "type": "NUMERICA",
+  "category": "DEMOGRAFICA",
+  "scope": "LOCAL",
+  "isRequired": true,
+  "minValue": 0,
+  "maxValue": 120,
+  "helpText": "Informe sua idade em anos completos",
+  "objective": "Coletar dados demográficos dos participantes",
+  "targetAudience": "Todos os participantes da pesquisa",
+  "origin": "MANUAL"
+}
+
+### 14. Criar Questão de Múltipla Escolha
+POST {{baseUrl}}/questions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "text": "Qual o seu nível de escolaridade?",
+  "type": "MULTIPLA_ESCOLHA",
+  "category": "DEMOGRAFICA",
+  "scope": "NACIONAL",
+  "isRequired": true,
+  "options": {
+    "choices": [
+      "Ensino Fundamental Incompleto",
+      "Ensino Fundamental Completo",
+      "Ensino Médio Incompleto",
+      "Ensino Médio Completo",
+      "Ensino Superior Incompleto",
+      "Ensino Superior Completo",
+      "Pós-graduação"
+    ]
+  },
+  "objective": "Identificar perfil educacional dos participantes",
+  "origin": "MANUAL"
+}
+
+### 15. Criar Questão Escala Likert
+POST {{baseUrl}}/questions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "text": "Como você avalia a qualidade do atendimento?",
+  "type": "ESCALA_LIKERT",
+  "category": "COMPORTAMENTAL",
+  "scope": "LOCAL",
+  "isRequired": true,
+  "likertMin": 1,
+  "likertMax": 5,
+  "likertLabels": {
+    "1": "Muito insatisfeito",
+    "2": "Insatisfeito",
+    "3": "Neutro",
+    "4": "Satisfeito",
+    "5": "Muito satisfeito"
+  },
+  "objective": "Medir satisfação com serviços",
+  "origin": "MANUAL"
+}
+
+### 16. Importar Questões em Lote
+POST {{baseUrl}}/questions/import
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "questions": [
+    {
+      "text": "Qual é o seu nome completo?",
+      "type": "ABERTA",
+      "category": "DEMOGRAFICA",
+      "scope": "LOCAL",
+      "isRequired": true
+    },
+    {
+      "text": "Você tem alguma doença crônica?",
+      "type": "SIM_NAO",
+      "category": "CLINICA",
+      "scope": "LOCAL",
+      "isRequired": true
+    },
+    {
+      "text": "Data de nascimento",
+      "type": "DATA",
+      "category": "DEMOGRAFICA",
+      "scope": "LOCAL",
+      "isRequired": true
+    }
+  ],
+  "defaultOrigin": "IMPORTED_BATCH",
+  "researchGroupId": null
+}
+
+### 17. Listar Questões
+GET {{baseUrl}}/questions
+Authorization: Bearer {{accessToken}}
+
+### 18. Listar Questões com Filtros
+GET {{baseUrl}}/questions?type=NUMERICA&category=DEMOGRAFICA&scope=LOCAL
+Authorization: Bearer {{accessToken}}
+
+### 19. Buscar Questões por Texto
+GET {{baseUrl}}/questions?search=idade
+Authorization: Bearer {{accessToken}}
+
+### 20. Buscar Questão por ID
+GET {{baseUrl}}/questions/SEU_QUESTION_ID
+Authorization: Bearer {{accessToken}}
+
+### 21. Buscar Questões Similares (pgVector - quando instalado)
+GET {{baseUrl}}/questions/SEU_QUESTION_ID/similar
+Authorization: Bearer {{accessToken}}
+
+### 22. Obter Estatísticas de Questões (apenas coordenadores)
+GET {{baseUrl}}/questions/statistics
+Authorization: Bearer {{accessToken}}
+
+### 23. Atualizar Questão (cria nova versão)
+PATCH {{baseUrl}}/questions/SEU_QUESTION_ID
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "text": "Qual é a sua idade atual?",
+  "helpText": "Informe sua idade em anos completos no momento da pesquisa"
+}
+
+### 24. Deletar Questão
+DELETE {{baseUrl}}/questions/SEU_QUESTION_ID
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### UPLOAD DE ARQUIVOS
+### ============================================
+
+### 25. Download Template Excel
+GET {{baseUrl}}/questions/templates/excel
+Authorization: Bearer {{accessToken}}
+
+### 26. Download Template CSV
+GET {{baseUrl}}/questions/templates/csv
+Authorization: Bearer {{accessToken}}
+
+### 27. Upload Excel com Questões
+# Nota: Use Thunder Client ou Postman para testar upload de arquivos
+# No Thunder Client:
+# 1. Selecione método POST
+# 2. URL: http://localhost:3000/questions/upload/excel
+# 3. Aba "Body" > "Form"
+# 4. Adicione campo "file" tipo "File" e selecione arquivo .xlsx
+# 5. Adicione campo "defaultOrigin" tipo "Text" com valor "EXCEL_IMPORT" (opcional)
+# 6. Adicione campo "researchGroupId" tipo "Text" com UUID (opcional)
+# 7. Aba "Headers" > Adicione "Authorization: Bearer SEU_TOKEN"
+POST {{baseUrl}}/questions/upload/excel
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Body (form-data):
+# file: [selecionar arquivo .xlsx]
+# defaultOrigin: EXCEL_IMPORT
+# researchGroupId: uuid-do-grupo (opcional)
+
+### 28. Upload CSV com Questões
+POST {{baseUrl}}/questions/upload/csv
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Body (form-data):
+# file: [selecionar arquivo .csv]
+# defaultOrigin: CSV_IMPORT
+# researchGroupId: uuid-do-grupo (opcional)
+
+### ============================================
+### USUÁRIOS
+### ============================================
+
+### 29. Listar Usuários (apenas coordenadores)
+GET {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+
+### 30. Buscar Usuário por ID
+GET {{baseUrl}}/users/SEU_USER_ID
+Authorization: Bearer {{accessToken}}
+
+### 31. Atualizar Usuário
+PATCH {{baseUrl}}/users/SEU_USER_ID
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "(11) 99999-8888"
+}
+
+### 32. Deletar Usuário
+DELETE {{baseUrl}}/users/SEU_USER_ID
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### TESTES DE VALIDAÇÃO
+### ============================================
+
+### 33. Teste: Criar instituição com CNPJ inválido (deve falhar)
+POST {{baseUrl}}/institutions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "cnpj": "12345678000190",
+  "name": "Teste CNPJ Inválido",
+  "type": "ACADEMICA",
+  "coordinatorId": "ID_VALIDO"
+}
+
+### 34. Teste: Criar questão sem autenticação (deve falhar 401)
+POST {{baseUrl}}/questions
+Content-Type: application/json
+
+{
+  "text": "Teste sem auth",
+  "type": "ABERTA"
+}
+
+### 35. Teste: Criar instituição com role inadequado (deve falhar 403)
+### (Use token de um usuário ALUNO)
+POST {{baseUrl}}/institutions
+Authorization: Bearer TOKEN_DE_ALUNO
+Content-Type: application/json
+
+{
+  "cnpj": "98.765.432/0001-00",
+  "name": "Teste Role",
+  "type": "ACADEMICA",
+  "coordinatorId": "ID_VALIDO"
+}
+
+### ============================================
+### NOTAS
+### ============================================
+# 1. Substitua {{accessToken}} pelo token JWT retornado no login
+# 2. Substitua IDs de exemplo pelos IDs reais retornados nas respostas
+# 3. Para criar o primeiro usuário, você precisa criar uma instituição manualmente no banco primeiro
+#    OU ajustar o fluxo para permitir criação de instituição antes de ter pesquisador
+# 4. Endpoints protegidos por roles:
+#    - Criar/Atualizar/Deletar Instituições: COORDENADOR_GRUPO, COORDENADOR_PROJETO, DOCENTE
+#    - Estatísticas: COORDENADOR_GRUPO, COORDENADOR_PROJETO, DOCENTE
+#    - Listar usuários: COORDENADOR_GRUPO, COORDENADOR_PROJETO, DOCENTE
+# 5. Use ferramentas como Thunder Client, REST Client (VS Code) ou Postman para executar
